@@ -1,211 +1,225 @@
 <template>
-    <v-dialog :model-value="modelValue" fullscreen transition="dialog-bottom-transition" persistent>
-        <v-app :theme="theme.global.name.value" class="cbt-premium-bg">
-            <!-- Header Premium BKN/CAT Style -->
-            <v-app-bar elevation="1" class="px-2 px-md-6 border-b" height="80" color="white">
-                <v-btn icon @click="$emit('close')" color="error" class="mr-4" variant="tonal">
-                    <v-icon>mdi-close</v-icon>
-                </v-btn>
-                
-                <div class="d-flex flex-column justify-center h-100 py-2">
-                    <div class="text-subtitle-2 text-grey-darken-1 mb-n1 font-weight-medium">PREVIEW SIMULASI CAT</div>
-                    <div class="text-h6 font-weight-bold text-primary text-truncate" style="max-width: 40vw;">
-                        {{ quiz.title }}
+    <v-dialog :model-value="modelValue" fullscreen transition="fade-transition" persistent>
+        <v-app :theme="theme.global.name.value" class="anbk-bg">
+            <!-- ANBK Style Header -->
+            <v-app-bar elevation="0" color="#2c6fb7" height="100" class="px-0 relative overflow-visible">
+                <v-container fluid class="pa-0 fill-height d-flex align-center">
+                    <!-- Logo & App Name -->
+                    <div class="d-flex align-center ml-4 ml-md-10">
+                        <v-img 
+                            :src="settings.school_logo ? `/storage/${settings.school_logo}` : 'https://upload.wikimedia.org/wikipedia/commons/9/9c/Logo_of_Ministry_of_Education_and_Culture_of_Republic_of_Indonesia.svg'" 
+                            width="50" 
+                            height="50" 
+                            contain 
+                            class="mr-4"
+                        ></v-img>
+                        <div class="header-text">
+                            <h1 class="text-h5 font-weight-black text-white line-height-1 mb-0">{{ settings.app_name || 'LMS MAN 1 BREBES' }}</h1>
+                            <div class="text-subtitle-2 text-white font-weight-medium opacity-80">CBT Application</div>
+                        </div>
                     </div>
-                </div>
-                
-                <v-spacer></v-spacer>
-                
-                <v-chip color="warning" variant="elevated" class="mr-4 font-weight-black d-none d-md-flex elevation-2" prepend-icon="mdi-alert">
-                    MODE PRATINJAU - TIDAK DISIMPAN
-                </v-chip>
 
-                <v-card variant="outlined" color="primary" class="d-flex align-center px-4 py-2 rounded-pill bg-blue-lighten-5 border-primary">
-                    <v-icon color="primary" class="mr-2" size="24">mdi-timer-outline</v-icon>
-                    <div class="text-h6 font-weight-black text-primary font-mono tracking-widest">{{ quiz.duration_minutes }}:00</div>
-                </v-card>
+                    <v-spacer></v-spacer>
+
+                    <!-- User Profile Mock -->
+                    <div class="d-flex align-center mr-4 mr-md-10">
+                        <div class="text-right mr-4 d-none d-sm-block">
+                            <div class="text-body-2 font-weight-bold text-white mb-1">Administrator</div>
+                            <v-btn size="x-small" color="white" variant="flat" class="text-none font-weight-bold logout-btn px-4" rounded="pill" @click="$emit('close')">
+                                Logout
+                            </v-btn>
+                        </div>
+                        <v-avatar color="white" size="48" class="elevation-2 border-white">
+                            <v-icon color="#2c6fb7">mdi-account-circle</v-icon>
+                        </v-avatar>
+                    </div>
+                </v-container>
+                
+                <!-- Decorative wave/diag (css) -->
+                <div class="header-accent"></div>
             </v-app-bar>
 
-            <v-main class="cbt-premium-bg" style="height: 100vh; overflow-y: auto;">
-                <v-container class="pa-4 pa-md-8 pb-16 max-w-1200">
-                    <v-row v-if="loading">
-                         <v-col cols="12" class="text-center pa-12">
-                             <v-progress-circular indeterminate color="primary" size="64" width="6"></v-progress-circular>
-                             <div class="mt-6 text-h6 text-primary font-weight-medium">Menyinkronkan Bank Soal...</div>
-                         </v-col>
-                    </v-row>
+            <v-main class="anbk-main">
+                <v-container class="pa-0 fill-height d-flex flex-column align-center" fluid>
                     
-                    <v-row v-else-if="questions.length === 0">
-                        <v-col cols="12" class="text-center pa-12">
-                            <v-card class="pa-12 mx-auto rounded-xl elevation-2 text-center" max-width="600">
-                                <v-icon size="100" color="grey-lighten-1" icon="mdi-folder-open-outline"></v-icon>
-                                <div class="mt-6 text-h5 font-weight-bold text-grey-darken-2">Bank Soal Kosong</div>
-                                <div class="text-body-1 text-grey mt-2">Ujian ini belum memiliki pertanyaan untuk dievaluasi.</div>
-                                <v-btn color="primary" class="mt-8" size="large" @click="$emit('close')">Kembali ke Manajemen</v-btn>
-                            </v-card>
-                        </v-col>
-                    </v-row>
-                    
-                    <v-row v-else>
-                        <!-- Active Question Area (Left Side) -->
-                        <v-col cols="12" md="8" lg="9" class="mb-6 mb-md-0">
-                            <v-card rounded="xl" elevation="3" class="min-h-card d-flex flex-column border-t-primary">
-                                <!-- Top Bar of Question -->
-                                <div class="d-flex justify-space-between align-center px-6 py-4 bg-grey-lighten-4 border-b">
+                    <div class="content-wrapper mt-n4 relative z-index-2 w-full max-w-1000">
+                        <v-row v-if="loading" justify="center">
+                             <v-col cols="12" class="text-center pa-12">
+                                 <v-progress-circular indeterminate color="#2c6fb7" size="64"></v-progress-circular>
+                                 <div class="mt-4 text-subtitle-1 text-grey-darken-1">Memuat Pratinjau...</div>
+                             </v-col>
+                        </v-row>
+                        
+                        <v-row v-else-if="questions.length === 0" justify="center">
+                            <v-col cols="12" class="text-center pa-12">
+                                <v-card class="pa-10 rounded-xl elevation-4">
+                                    <div class="text-h5 text-grey">Ujian ini belum memiliki soal.</div>
+                                    <v-btn color="#2c6fb7" class="mt-6 px-10" rounded="pill" @click="$emit('close')">Tutup Pratinjau</v-btn>
+                                </v-card>
+                            </v-col>
+                        </v-row>
+
+                        <template v-else>
+                            <!-- Main Question Card -->
+                            <v-card class="question-card mx-auto mb-10 elevation-10" min-height="600">
+                                <!-- Card Header -->
+                                <v-toolbar color="white" class="px-6 border-bottom" flat height="70">
                                     <div class="d-flex align-center">
-                                        <v-chip color="primary" size="large" class="font-weight-black rounded-lg mr-4 elevation-1">
-                                            SOAL {{ currentQuestionIndex + 1 }}
-                                        </v-chip>
-                                        <div class="text-subtitle-1 text-grey-darken-2 font-weight-medium">
-                                            Dari {{ questions.length }} Soal
-                                        </div>
+                                        <div class="soal-label mr-3">SOAL NOMOR</div>
+                                        <div class="soal-number">{{ currentQuestionIndex + 1 }}</div>
                                     </div>
                                     
-                                    <v-chip color="orange-darken-3" variant="outlined" size="small" class="font-weight-bold font-italic rounded-lg">
-                                        <v-icon start size="small">mdi-star-circle-outline</v-icon>
-                                        Bobot: {{ currentQuestion.points }}
-                                    </v-chip>
+                                    <v-spacer></v-spacer>
+
+                                    <!-- Timer Pill -->
+                                    <div class="timer-pill px-6 py-2 mr-4 d-none d-sm-flex align-center">
+                                        <span class="text-caption font-weight-bold text-grey-darken-1 mr-4">Sisa Waktu</span>
+                                        <span class="timer-value">{{ formattedTime }}</span>
+                                    </div>
+
+                                    <v-btn color="#1a73e8" class="text-none font-weight-bold daftar-btn" rounded="lg" @click="gridDialog = true">
+                                        Daftar Soal
+                                        <v-icon end icon="mdi-view-grid-outline" class="ml-2"></v-icon>
+                                    </v-btn>
+                                </v-toolbar>
+
+                                <!-- Text Size Adjuster (Decorative) -->
+                                <div class="bg-grey-lighten-4 px-6 py-2 d-flex align-center border-bottom">
+                                    <span class="text-caption text-grey-darken-1 mr-4 font-weight-bold">Ukuran Soal :</span>
+                                    <span class="text-caption mr-2 font-weight-bold opacity-30">A</span>
+                                    <span class="text-caption mr-2 font-weight-bold opacity-60">A</span>
+                                    <span class="text-caption font-weight-bold">A</span>
                                 </div>
 
-                                <!-- Question Body -->
-                                <div class="pa-6 pa-md-8 flex-grow-1">
-                                    
-                                    <!-- Image Display -->
-                                    <v-img 
-                                        v-if="currentQuestion.question_image" 
-                                        :src="`/storage/${currentQuestion.question_image}`"
-                                        max-height="350"
-                                        contain
-                                        class="mb-8 rounded-xl bg-grey-lighten-4 border elevation-1"
-                                    ></v-img>
+                                <!-- Question Content -->
+                                <v-card-text class="pa-10">
+                                    <div class="text-body-1 mb-8 text-black html-content quest-text" v-html="currentQuestion.question_text"></div>
 
-                                    <!-- Question Text -->
-                                    <div class="text-h6 mb-8 text-black line-height-relaxed html-content font-weight-regular" v-html="currentQuestion.question_text"></div>
+                                    <div v-if="currentQuestion.question_image" class="mb-8">
+                                        <v-img :src="`/storage/${currentQuestion.question_image}`" max-height="400" contain class="rounded-lg shadow-sm border"></v-img>
+                                    </div>
 
-                                    <!-- Premium Custom Radio Options -->
-                                    <div class="premium-options-container mt-8">
+                                    <!-- Options -->
+                                    <div class="options-list pb-12">
                                         <div 
                                             v-for="opt in availableOptions" 
                                             :key="opt"
-                                            class="premium-option-item elevation-1 mb-4 rounded-xl d-flex align-stretch transition-fast-in-fast-out"
-                                            :class="getEnhancedOptionClass(opt)"
+                                            class="option-item d-flex align-center mb-4 cursor-pointer"
                                             @click="currentQuestion.preview_answer = opt"
                                         >
-                                            <div class="option-label-container d-flex align-center justify-center font-weight-black text-h6 px-6">
+                                            <div class="option-circle mr-4" :class="{ 'active': currentQuestion.preview_answer === opt }">
                                                 {{ opt.toUpperCase() }}
                                             </div>
-                                            <div class="option-content-container flex-grow-1 pa-4 pa-md-5 text-body-1 bg-white ml-1">
+                                            <div class="option-label text-body-1" :class="{ 'font-weight-bold': currentQuestion.preview_answer === opt }">
                                                 {{ currentQuestion['option_' + opt] }}
                                             </div>
-                                            <div class="icon-indicator-container d-flex align-center justify-center px-4 bg-white rounded-r-xl">
-                                                <v-icon v-if="currentQuestion.correct_answer === opt && currentQuestion.preview_answer === opt" color="success" size="32">mdi-check-circle</v-icon>
-                                                <v-icon v-else-if="currentQuestion.correct_answer !== opt && currentQuestion.preview_answer === opt" color="error" size="32">mdi-close-circle</v-icon>
-                                                <v-icon v-else-if="currentQuestion.preview_answer === null" color="grey-lighten-2" size="32">mdi-radiobox-blank</v-icon>
-                                            </div>
+
+                                            <v-chip v-if="currentQuestion.preview_answer === opt && currentQuestion.correct_answer === opt" color="success" size="x-small" class="ml-4">Benar</v-chip>
+                                            <v-chip v-if="currentQuestion.preview_answer === opt && currentQuestion.correct_answer !== opt" color="error" size="x-small" class="ml-4">Kunci: {{ currentQuestion.correct_answer.toUpperCase() }}</v-chip>
                                         </div>
                                     </div>
+                                </v-card-text>
 
-                                </div>
-
-                                <!-- Bottom Navigation Bar -->
-                                <v-divider></v-divider>
-                                <div class="px-6 py-4 bg-grey-lighten-5 rounded-b-xl d-flex justify-space-between align-center">
-                                    <v-btn 
-                                        prepend-icon="mdi-arrow-left-circle" 
-                                        variant="outlined" 
-                                        color="primary"
-                                        size="large"
-                                        rounded="pill"
-                                        class="font-weight-bold"
+                                <!-- Navigation Bottom -->
+                                <v-card-actions class="pa-6 bg-grey-lighten-4 border-top">
+                                    <v-btn
+                                        color="#1a73e8"
+                                        variant="flat"
+                                        class="nav-btn px-6 text-none font-weight-bold rounded-pill"
+                                        height="50"
+                                        prepend-icon="mdi-arrow-left-circle"
                                         :disabled="currentQuestionIndex === 0"
                                         @click="currentQuestionIndex--"
                                     >
-                                        SEBELUMNYA
+                                        Soal Sebelumnya
                                     </v-btn>
-                                    
-                                    <v-btn 
-                                        v-if="currentQuestionIndex < questions.length - 1"
-                                        append-icon="mdi-arrow-right-circle" 
-                                        color="primary" 
-                                        size="large"
-                                        rounded="pill"
-                                        class="font-weight-bold elevation-2"
-                                        @click="currentQuestionIndex++"
+
+                                    <v-spacer></v-spacer>
+
+                                    <v-btn
+                                        color="#fbbc05"
+                                        variant="flat"
+                                        class="nav-btn px-10 text-none font-weight-bold text-white rounded-pill ragu-btn"
+                                        height="50"
+                                        prepend-icon="mdi-square"
+                                        @click="toggleRagu"
                                     >
-                                        SELANJUTNYA
+                                        Ragu-Ragu
                                     </v-btn>
-                                    
-                                    <v-btn 
-                                        v-else
-                                        prepend-icon="mdi-flag-checkered" 
-                                        color="success" 
-                                        size="large"
-                                        rounded="pill"
-                                        class="font-weight-bold elevation-2"
-                                        @click="$emit('close')"
+
+                                    <v-spacer></v-spacer>
+
+                                    <v-btn
+                                        color="#1a73e8"
+                                        variant="flat"
+                                        class="nav-btn px-6 text-none font-weight-bold rounded-pill"
+                                        height="50"
+                                        append-icon="mdi-arrow-right-circle"
+                                        @click="nextQuestion"
                                     >
-                                        SELESAI PREVIEW
+                                        {{ currentQuestionIndex < questions.length - 1 ? 'Soal Selanjutnya' : 'Kembali' }}
                                     </v-btn>
-                                </div>
+                                </v-card-actions>
                             </v-card>
-                        </v-col>
+                        </template>
+                    </div>
 
-                        <!-- Right Panel: Question Grid Matrix -->
-                        <v-col cols="12" md="4" lg="3">
-                            <v-card rounded="xl" elevation="3" class="pa-0 position-sticky border-t-primary" style="top: 24px;">
-                                <div class="bg-primary px-4 py-3 text-center rounded-t-xl">
-                                    <h3 class="text-subtitle-1 font-weight-bold text-white d-flex align-center justify-center">
-                                        <v-icon start>mdi-grid</v-icon> MATRIKS SOAL
-                                    </h3>
-                                </div>
-                                
-                                <div class="pa-4 pt-6">
-                                    <div class="grid-container">
-                                        <div 
-                                            v-for="(q, index) in questions" 
-                                            :key="q.id" 
-                                            class="grid-item d-flex align-center justify-center font-weight-bold text-subtitle-2 elevation-1"
-                                            :class="getGridItemClass(index)"
-                                            @click="currentQuestionIndex = index"
-                                            v-ripple
-                                        >
-                                            {{ index + 1 }}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <v-divider class="mx-4"></v-divider>
-
-                                <div class="pa-4 bg-grey-lighten-5">
-                                    <div class="text-caption font-weight-bold text-grey-darken-2 mb-2">KETERANGAN WARNA:</div>
-                                    <div class="d-flex align-center mb-2">
-                                        <div class="color-box bg-success mr-2 rounded elevation-1"></div>
-                                        <span class="text-caption">Jawaban Benar</span>
-                                    </div>
-                                    <div class="d-flex align-center mb-2">
-                                        <div class="color-box bg-error mr-2 rounded elevation-1"></div>
-                                        <span class="text-caption">Jawaban Salah</span>
-                                    </div>
-                                    <div class="d-flex align-center mb-2">
-                                        <div class="color-box bg-white border mr-2 rounded elevation-1"></div>
-                                        <span class="text-caption">Belum Dijawab</span>
-                                    </div>
-                                    <div class="d-flex align-center">
-                                        <div class="color-box bg-primary mr-2 rounded elevation-1" style="border: 2px solid #1976D2;"></div>
-                                        <span class="text-caption">Sedang Dilihat</span>
-                                    </div>
-                                </div>
-                            </v-card>
-                        </v-col>
-                    </v-row>
+                    <!-- Close Button Floating -->
+                    <v-btn
+                        icon="mdi-close"
+                        position="fixed"
+                        location="top right"
+                        class="mt-16 mr-6 elevation-8 z-index-10"
+                        color="white"
+                        @click="$emit('close')"
+                    ></v-btn>
                 </v-container>
             </v-main>
+
+            <!-- Grid Dialog (Daftar Soal) -->
+            <v-dialog v-model="gridDialog" max-width="600">
+                <v-card class="rounded-xl pa-4">
+                    <v-card-title class="d-flex justify-space-between align-center">
+                        <span class="font-weight-bold">Daftar Soal (Matriks)</span>
+                        <v-btn icon="mdi-close" variant="text" @click="gridDialog = false"></v-btn>
+                    </v-card-title>
+                    <v-card-text class="pa-4">
+                        <div class="grid-container">
+                            <div 
+                                v-for="(q, index) in questions" 
+                                :key="q.id"
+                                class="grid-item d-flex align-center justify-center cursor-pointer font-weight-bold"
+                                :class="getGridClass(index)"
+                                @click="goToQuestion(index)"
+                            >
+                                {{ index + 1 }}
+                            </div>
+                        </div>
+                        
+                        <!-- Legend -->
+                        <div class="d-flex justify-center flex-wrap mt-8 pt-4 border-top">
+                            <div class="d-flex align-center mr-6 mb-2">
+                                <div class="legend-dot bg-blue-primary mr-2"></div>
+                                <span class="text-caption font-weight-bold text-grey-darken-1">Terjawab</span>
+                            </div>
+                            <div class="d-flex align-center mr-6 mb-2">
+                                <div class="legend-dot bg-white border mr-2"></div>
+                                <span class="text-caption font-weight-bold text-grey-darken-1">Kosong</span>
+                            </div>
+                            <div class="d-flex align-center mb-2">
+                                <div class="legend-dot bg-yellow-ragu mr-2"></div>
+                                <span class="text-caption font-weight-bold text-grey-darken-1">Ragu-Ragu</span>
+                            </div>
+                        </div>
+                    </v-card-text>
+                </v-card>
+            </v-dialog>
         </v-app>
     </v-dialog>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onUnmounted, onMounted } from 'vue';
 import axios from 'axios';
 import { useTheme } from 'vuetify';
 
@@ -223,6 +237,12 @@ const theme = useTheme();
 const questions = ref([]);
 const loading = ref(false);
 const currentQuestionIndex = ref(0);
+const settings = ref({});
+const gridDialog = ref(false);
+
+// Timer Mockup
+const timeLeft = ref(0);
+let timerInterval = null;
 
 const currentQuestion = computed(() => {
     return questions.value[currentQuestionIndex.value] || null;
@@ -237,40 +257,53 @@ const availableOptions = computed(() => {
     return opts;
 });
 
-// Enhanced styling for options
-const getEnhancedOptionClass = (opt) => {
-    const isSelected = currentQuestion.value.preview_answer === opt;
-    const isCorrect = currentQuestion.value.correct_answer === opt;
-    const hasAnswered = currentQuestion.value.preview_answer !== null;
+const formattedTime = computed(() => {
+    const hours = Math.floor(timeLeft.value / 3600);
+    const minutes = Math.floor((timeLeft.value % 3600) / 60);
+    const seconds = timeLeft.value % 60;
+    
+    const hStr = String(hours).padStart(2, '0');
+    const mStr = String(minutes).padStart(2, '0');
+    const sStr = String(seconds).padStart(2, '0');
+    
+    return `${hStr}:${mStr}:${sStr}`;
+});
 
-    if (hasAnswered) {
-        if (isSelected) {
-            return isCorrect ? 'option-selected-correct' : 'option-selected-wrong';
-        } else if (isCorrect) {
-            return 'option-missed-correct'; // Shows the correct answer if they got it wrong
-        }
-    }
-    return 'option-default';
+const getGridClass = (index) => {
+    const q = questions.value[index];
+    if (q.ragu) return 'bg-yellow-ragu text-white';
+    if (q.preview_answer) return 'bg-blue-primary text-white';
+    return 'bg-white text-grey-darken-1 border';
 };
 
-const getGridItemClass = (index) => {
-    const q = questions.value[index];
-    const isCurrent = currentQuestionIndex.value === index;
-    
-    let classes = [];
-    if (isCurrent) classes.push('grid-current');
-    
-    if (q.preview_answer) {
-        if (q.preview_answer === q.correct_answer) {
-            classes.push('grid-correct');
-        } else {
-            classes.push('grid-wrong');
-        }
-    } else {
-        classes.push('grid-unanswered');
+const goToQuestion = (index) => {
+    currentQuestionIndex.value = index;
+    gridDialog.value = false;
+};
+
+const toggleRagu = () => {
+    if (currentQuestion.value) {
+        currentQuestion.value.ragu = !currentQuestion.value.ragu;
     }
-    
-    return classes.join(' ');
+};
+
+const nextQuestion = () => {
+    if (currentQuestionIndex.value < questions.value.length - 1) {
+        currentQuestionIndex.value++;
+    } else {
+        emit('close');
+    }
+};
+
+const fetchSettings = async () => {
+    try {
+        const response = await axios.get('/api/settings');
+        if (response.data.success) {
+            settings.value = response.data.data;
+        }
+    } catch (error) {
+        console.error('Error fetching settings:', error);
+    }
 };
 
 const loadQuestions = async () => {
@@ -280,9 +313,17 @@ const loadQuestions = async () => {
         const response = await axios.get(`api/admin/quizzes/${props.quiz.id}/questions`);
         questions.value = response.data.data.map(q => ({
             ...q,
-            preview_answer: null
+            preview_answer: null,
+            ragu: false
         }));
         currentQuestionIndex.value = 0;
+        
+        timeLeft.value = (props.quiz.duration_minutes || 60) * 60;
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            if (timeLeft.value > 0) timeLeft.value--;
+        }, 1000);
+        
     } catch (error) {
         console.error('Error fetching preview questions:', error);
     } finally {
@@ -290,137 +331,196 @@ const loadQuestions = async () => {
     }
 };
 
+onMounted(fetchSettings);
+
 watch(() => props.modelValue, (val) => {
     if (val) {
         loadQuestions();
+    } else {
+        clearInterval(timerInterval);
     }
 }, { immediate: true });
+
+onUnmounted(() => {
+    clearInterval(timerInterval);
+});
 </script>
 
 <style scoped>
-/* Typography & Base */
-.font-mono {
-    font-family: 'Courier New', Courier, monospace;
-}
-.tracking-widest {
-    letter-spacing: 0.1em !important;
-}
-.cbt-premium-bg {
-    background-color: #f0f4f8; /* Soft blue-grey background typical of CAT */
-}
-.max-w-1200 {
-    max-width: 1200px;
-    margin: 0 auto;
-}
-.min-h-card {
-    min-height: 600px;
-}
-.border-t-primary {
-    border-top: 4px solid #1976D2 !important;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
+
+.anbk-bg {
+    background-color: #e9ecef !important;
 }
 
-/* Premium Options Layout */
-.premium-option-item {
-    cursor: pointer;
+.font-inter {
+    font-family: 'Inter', sans-serif !important;
+}
+
+.anbk-main {
+    background-color: #e9ecef;
+}
+
+.line-height-1 {
+    line-height: 1.1;
+}
+
+.header-accent {
+    position: absolute;
+    bottom: -30px;
+    left: 0;
+    width: 100%;
+    height: 100px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+    clip-path: polygon(0 0, 100% 0, 100% 10%, 0 70%);
+    z-index: 1;
+}
+
+.max-w-1000 {
+    max-width: 1000px;
+}
+
+.question-card {
+    border-radius: 12px !important;
     overflow: hidden;
-    background-color: white;
-    border: 2px solid transparent;
+    margin-top: 20px;
 }
-.premium-option-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+
+.soal-label {
+    font-size: 15px;
+    font-weight: 700;
+    color: #4b5563;
 }
-.option-label-container {
-    width: 60px;
+
+.soal-number {
+    background-color: #3b82f6;
     color: white;
-    transition: background-color 0.3s ease;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    font-weight: 900;
+    font-size: 18px;
 }
 
-/* Option States */
-.option-default {
-    border-color: #e0e0e0;
-}
-.option-default .option-label-container {
-    background-color: #e0e0e0;
-    color: #424242;
-}
-.option-default:hover {
-    border-color: #1976D2;
-}
-.option-default:hover .option-label-container {
-    background-color: #bbdefb;
-    color: #1976D2;
+.timer-pill {
+    border: 1px solid #ef4444;
+    border-radius: 50px;
+    background-color: #fff1f2;
 }
 
-.option-selected-correct {
-    border-color: #4CAF50;
-    box-shadow: 0 0 0 1px #4CAF50 !important;
-}
-.option-selected-correct .option-label-container {
-    background-color: #4CAF50;
-}
-.option-selected-wrong {
-    border-color: #FF5252;
-    box-shadow: 0 0 0 1px #FF5252 !important;
-}
-.option-selected-wrong .option-label-container {
-    background-color: #FF5252;
-}
-.option-missed-correct {
-    border-color: #81C784;
-    border-style: dashed;
-}
-.option-missed-correct .option-label-container {
-    background-color: #81C784;
+.timer-value {
+    color: #b91c1c;
+    font-weight: 900;
+    font-size: 18px;
+    font-family: monospace;
 }
 
-/* Grid Matrix */
+.daftar-btn {
+    letter-spacing: 0.5px;
+}
+
+.border-bottom {
+    border-bottom: 1px solid #e5e7eb !important;
+}
+
+.border-top {
+    border-top: 1px solid #e5e7eb !important;
+}
+
+.quest-text {
+    line-height: 1.8;
+    color: #1f2937;
+    font-size: 1.1rem;
+}
+
+/* Options */
+.option-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid #d1d5db;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    color: #6b7280;
+    transition: all 0.2s;
+}
+
+.option-circle.active {
+    background-color: #1a73e8;
+    color: white;
+    border-color: #1a73e8;
+    transform: scale(1.1);
+}
+
+.option-item:hover .option-circle:not(.active) {
+    border-color: #1a73e8;
+    color: #1a73e8;
+}
+
+.nav-btn {
+    letter-spacing: 0.5px;
+    text-transform: none;
+}
+
+.ragu-btn {
+    background-color: #f59e0b !important;
+}
+
+.logout-btn {
+    border: 1px solid #e5e7eb;
+}
+
+.opacity-80 {
+    opacity: 0.8;
+}
+
+.opacity-30 { opacity: 0.3; }
+.opacity-60 { opacity: 0.6; }
+
+.z-index-2 { z-index: 2; }
+.z-index-10 { z-index: 10; }
+
+.w-full { width: 100%; }
+
 .grid-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
-    gap: 12px;
-}
-.grid-item {
-    aspect-ratio: 1;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: 2px solid transparent;
-}
-.grid-item:hover {
-    transform: scale(1.05);
-}
-.grid-unanswered {
-    background-color: white;
-    color: #424242;
-    border-color: #e0e0e0;
-}
-.grid-correct {
-    background-color: #4CAF50;
-    color: white;
-}
-.grid-wrong {
-    background-color: #FF5252;
-    color: white;
-}
-.grid-current {
-    transform: scale(1.1);
-    box-shadow: 0 0 0 2px white, 0 0 0 4px #1976D2 !important;
-    z-index: 2;
+    gap: 10px;
 }
 
-/* Utilities */
-.color-box {
-    width: 16px;
-    height: 16px;
+.grid-item {
+    aspect-ratio: 1;
+    border-radius: 6px;
+    font-size: 16px;
+    transition: all 0.2s;
 }
+
+.grid-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.bg-blue-primary { background-color: #2c6fb7 !important; }
+.bg-yellow-ragu { background-color: #fbbc05 !important; }
+
 .html-content :deep(p) {
-    margin-bottom: 1em;
+    margin-bottom: 1rem;
 }
+
 .html-content :deep(img) {
     max-width: 100%;
     height: auto;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 </style>

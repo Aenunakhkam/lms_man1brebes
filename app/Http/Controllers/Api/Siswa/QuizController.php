@@ -26,9 +26,10 @@ class QuizController extends Controller
         
         // Fetch quizzes that are active for the student's class
         $quizzes = Quiz::where('is_active', true)
-            ->whereIn('class_id', $classIds)
-            ->where('end_time', '>', Carbon::now())
-            ->with(['class', 'subject'])
+            ->whereHas('classes', function($query) use ($classIds) {
+                $query->whereIn('classes.id', $classIds);
+            })
+            ->with(['classes', 'subject'])
             ->get()
             ->map(function($quiz) use ($student) {
                 $attempt = QuizAttempt::where('quiz_id', $quiz->id)
@@ -86,10 +87,20 @@ class QuizController extends Controller
             ->first();
 
         if ($existingAttempt && $existingAttempt->status === 'completed') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Anda sudah menyelesaikan ujian ini'
-            ], 403);
+            // Check max attempts
+            if ($quiz->max_attempts !== null) {
+                $completedCount = QuizAttempt::where('quiz_id', $quiz->id)
+                    ->where('student_id', $studentId)
+                    ->where('status', 'completed')
+                    ->count();
+                
+                if ($completedCount >= $quiz->max_attempts) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Anda sudah mencapai batas maksimal pengerjaan (' . $quiz->max_attempts . ' kali)'
+                    ], 403);
+                }
+            }
         }
 
         if ($existingAttempt && $existingAttempt->status === 'in_progress') {
@@ -151,7 +162,10 @@ class QuizController extends Controller
             'data' => [
                 'questions' => $questions,
                 'time_left_seconds' => max(0, $timeLeft),
-                'quiz_title' => $quiz->title
+                'quiz_title' => $quiz->title,
+                'quiz_settings' => [
+                    'prevent_copy_paste' => (bool)$quiz->prevent_copy_paste
+                ]
             ]
         ]);
     }

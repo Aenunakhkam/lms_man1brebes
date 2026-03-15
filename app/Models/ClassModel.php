@@ -27,4 +27,9 @@ class ClassModel extends Model
         return $this->belongsToMany(User::class, 'student_class', 'class_id', 'student_id')
                     ->withTimestamps();
     }
+    public function quizzes()
+    {
+        return $this->belongsToMany(Quiz::class, 'class_quiz', 'class_id', 'quiz_id')
+                    ->withTimestamps();
+    }
 }

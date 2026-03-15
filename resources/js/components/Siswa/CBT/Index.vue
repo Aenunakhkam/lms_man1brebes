@@ -110,7 +110,7 @@ const startingQuizId = ref(null);
 const fetchQuizzes = async () => {
     try {
         loading.value = true;
-        const response = await axios.get('api/cbt');
+        const response = await axios.get('api/siswa/cbt');
         if (response.data.success) {
             quizzes.value = response.data.data;
         }
@@ -124,7 +124,7 @@ const fetchQuizzes = async () => {
 const startQuiz = async (quiz) => {
     try {
         startingQuizId.value = quiz.id;
-        const response = await axios.post(`/api/cbt/${quiz.id}/start`);
+        const response = await axios.post(`/api/siswa/cbt/${quiz.id}/start`);
         if (response.data.success) {
             router.push({ 
                 name: 'SiswaQuizRoom', 

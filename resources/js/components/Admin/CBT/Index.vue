@@ -22,6 +22,20 @@
                 <template v-slot:item.index="{ index }">
                     {{ index + 1 }}
                 </template>
+                <template v-slot:item.classes="{ item }">
+                    <div class="d-flex flex-wrap gap-1 py-1">
+                        <v-chip
+                            v-for="c in item.classes"
+                            :key="c.id"
+                            size="x-small"
+                            color="info"
+                            variant="flat"
+                            class="mr-1 mb-1 font-weight-bold"
+                        >
+                            {{ c.name }}
+                        </v-chip>
+                    </div>
+                </template>
                 <template v-slot:item.start_time="{ item }">
                     {{ formatDate(item.start_time) }}
                 </template>
@@ -83,6 +97,16 @@
                     <v-btn
                         icon
                         size="small"
+                        color="primary"
+                        class="mr-2"
+                        @click="viewResults(item)"
+                        title="Lihat Hasil Peserta"
+                    >
+                        <v-icon>mdi-chart-bar</v-icon>
+                    </v-btn>
+                    <v-btn
+                        icon
+                        size="small"
                         color="error"
                         @click="deleteItem(item)"
                     >
@@ -104,12 +128,15 @@
                         <v-row>
                             <v-col cols="12" sm="6">
                                 <v-select
-                                    v-model="editedItem.class_id"
+                                    v-model="editedItem.class_ids"
                                     :items="classes"
                                     item-title="name"
                                     item-value="id"
-                                    label="Kelas"
+                                    label="Kelas (Bisa Pilih Banyak)"
                                     variant="outlined"
+                                    multiple
+                                    chips
+                                    closable-chips
                                     required
                                 ></v-select>
                             </v-col>
@@ -170,6 +197,35 @@
                                     variant="outlined"
                                 ></v-text-field>
                             </v-col>
+                            <v-col cols="12" md="6">
+                                <v-select
+                                    v-model="editedItem.max_attempts_type"
+                                    :items="[
+                                        { title: '1 Kali', value: 1 },
+                                        { title: '3 Kali', value: 3 },
+                                        { title: 'Manual', value: 'manual' },
+                                        { title: 'Unlimited', value: 'unlimited' }
+                                    ]"
+                                    label="Batas Pengerjaan"
+                                    variant="outlined"
+                                ></v-select>
+                                <v-text-field
+                                    v-if="editedItem.max_attempts_type === 'manual'"
+                                    v-model="editedItem.max_attempts"
+                                    label="Jumlah Percobaan"
+                                    type="number"
+                                    variant="outlined"
+                                    min="1"
+                                ></v-text-field>
+                            </v-col>
+                            <v-col cols="12">
+                                <v-switch
+                                    v-model="editedItem.prevent_copy_paste"
+                                    label="Cegah Copy-Paste (Anti-Copas)"
+                                    color="primary"
+                                    hide-details
+                                ></v-switch>
+                            </v-col>
                         </v-row>
                     </v-container>
                 </v-card-text>
@@ -202,6 +258,14 @@
             @close="closePreview"
         ></preview-dialog>
 
+        <!-- Results Dialog -->
+        <quiz-results
+            v-if="selectedResultsQuiz"
+            v-model="resultsDialog"
+            :quiz="selectedResultsQuiz"
+            @close="closeResults"
+        ></quiz-results>
+
     </v-container>
 </template>
 
@@ -211,6 +275,7 @@ import axios from 'axios';
 import { useAlert } from '../../../composables/useAlert';
 import QuestionManager from './Questions.vue';
 import PreviewDialog from './Preview.vue';
+import QuizResults from './Results.vue';
 
 const { showSuccess, showError, showConfirm } = useAlert();
 
@@ -222,12 +287,14 @@ const saving = ref(false);
 const dialog = ref(false);
 const questionsDialog = ref(false);
 const previewDialog = ref(false);
+const resultsDialog = ref(false);
 const selectedQuiz = ref(null);
 const selectedPreviewQuiz = ref(null);
+const selectedResultsQuiz = ref(null);
 const editedIndex = ref(-1);
 
 const editedItem = ref({
-    class_id: null,
+    class_ids: [],
     subject_id: null,
     title: '',
     description: '',
@@ -238,20 +305,23 @@ const editedItem = ref({
 });
 
 const defaultItem = {
-    class_id: null,
-    subject_id: null,
     title: '',
     description: '',
     duration_minutes: 60,
     start_time: '',
     end_time: '',
-    is_active: true
+    is_active: true,
+    class_ids: [],
+    subject_id: null,
+    max_attempts: 1,
+    max_attempts_type: 1,
+    prevent_copy_paste: false
 };
 
 const headers = [
     { title: 'No.', key: 'index', sortable: false, width: '50px' },
     { title: 'Judul Ujian', align: 'start', key: 'title' },
-    { title: 'Kelas', key: 'class.name' },
+    { title: 'Kelas Tersedia', key: 'classes', sortable: false },
     { title: 'Mata Pelajaran', key: 'subject.name' },
     { title: 'Soal', key: 'questions_count', align: 'center' },
     { title: 'Skor', key: 'total_points', align: 'center' },
@@ -294,14 +364,33 @@ const editItem = (item) => {
     
     // Format dates for datetime-local input (YYYY-MM-DDTHH:mm)
     const formatForInput = (dateStr) => {
-        const d = new Date(dateStr);
-        return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
     };
 
     editedItem.value = Object.assign({}, item);
+    // Ekstrak array ID dari objek relasi classes untuk Multi-Select
+    editedItem.value.class_ids = item.classes ? item.classes.map(c => c.id) : [];
+    
     editedItem.value.start_time = formatForInput(item.start_time);
     editedItem.value.end_time = formatForInput(item.end_time);
-    editedItem.value.is_active = Boolean(item.is_active); // Ensure boolean
+    editedItem.value.is_active = Boolean(item.is_active);
+    editedItem.value.prevent_copy_paste = Boolean(item.prevent_copy_paste);
+    
+    // Set max_attempts_type
+    if (item.max_attempts === null) {
+        editedItem.value.max_attempts_type = 'unlimited';
+    } else if (item.max_attempts === 1 || item.max_attempts === 3) {
+        editedItem.value.max_attempts_type = item.max_attempts;
+    } else {
+        editedItem.value.max_attempts_type = 'manual';
+    }
     
     dialog.value = true;
 };
@@ -349,12 +438,23 @@ const loadSubjects = async () => {
 const save = async () => {
     try {
         saving.value = true;
+        
+        // Prepare max_attempts based on type
+        const payload = { ...editedItem.value };
+        if (payload.max_attempts_type === 'unlimited') {
+            payload.max_attempts = null;
+        } else if (payload.max_attempts_type === 'manual') {
+            payload.max_attempts = parseInt(payload.max_attempts);
+        } else {
+            payload.max_attempts = payload.max_attempts_type;
+        }
+
         if (editedIndex.value > -1) {
-            const response = await axios.put(`api/admin/quizzes/${editedItem.value.id}`, editedItem.value);
+            const response = await axios.put(`api/admin/quizzes/${editedItem.value.id}`, payload);
             Object.assign(quizzes.value[editedIndex.value], response.data.data);
             showSuccess('Ujian berhasil diperbarui');
         } else {
-            const response = await axios.post('api/admin/quizzes', editedItem.value);
+            const response = await axios.post('api/admin/quizzes', payload);
             quizzes.value.push(response.data.data);
             showSuccess('Ujian berhasil ditambahkan');
         }
@@ -393,6 +493,16 @@ const openPreview = (item) => {
 const closePreview = () => {
     previewDialog.value = false;
     selectedPreviewQuiz.value = null;
+};
+
+const viewResults = (item) => {
+    selectedResultsQuiz.value = item;
+    resultsDialog.value = true;
+};
+
+const closeResults = () => {
+    resultsDialog.value = false;
+    selectedResultsQuiz.value = null;
 };
 
 onMounted(() => {

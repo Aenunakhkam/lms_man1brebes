@@ -11,20 +11,22 @@ class Quiz extends Model
 
     protected $fillable = [
         'teacher_id',
-        'class_id',
         'subject_id',
         'title',
         'description',
         'duration_minutes',
         'start_time',
         'end_time',
-        'is_active'
+        'is_active',
+        'max_attempts',
+        'prevent_copy_paste'
     ];
 
     protected $casts = [
         'start_time' => 'datetime',
         'end_time' => 'datetime',
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
+        'prevent_copy_paste' => 'boolean'
     ];
 
     public function teacher()
@@ -32,9 +34,9 @@ class Quiz extends Model
         return $this->belongsTo(User::class, 'teacher_id');
     }
 
-    public function class()
+    public function classes()
     {
-        return $this->belongsTo(ClassModel::class, 'class_id');
+        return $this->belongsToMany(ClassModel::class, 'class_quiz', 'quiz_id', 'class_id');
     }
 
     public function subject()

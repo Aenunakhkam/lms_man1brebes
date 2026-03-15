@@ -57,6 +57,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('classes/{class}/students', [ClassController::class, 'addStudent']);
         Route::delete('classes/{class}/students/{studentId}', [ClassController::class, 'removeStudent']);
 
+        // Quiz Results & Attempt Management
+        Route::get('quizzes/{quiz}/results', [QuizController::class, 'getResults']);
+        Route::get('quizzes/{quiz}/export/pdf', [QuizController::class, 'exportPdf']);
+        Route::get('quizzes/{quiz}/export/excel', [QuizController::class, 'exportExcel']);
+        Route::delete('quizzes/attempts/{attempt}', [QuizController::class, 'deleteAttempt']);
+        Route::post('quizzes/attempts/{attempt}/block', [QuizController::class, 'blockAttempt']);
+        Route::post('quizzes/attempts/{attempt}/unblock', [QuizController::class, 'unblockAttempt']);
+        Route::get('quizzes/attempts/{attempt}/history', [QuizController::class, 'getAttemptHistory']);
+
         // CBT Routes
         Route::apiResource('quizzes', QuizController::class);
         Route::get('quizzes/{quiz}/questions', [QuizController::class, 'getQuestions']);
