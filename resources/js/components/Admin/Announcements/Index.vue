@@ -180,7 +180,7 @@ const defaultItem = {
 const fetchAnnouncements = async () => {
     loading.value = true;
     try {
-        const response = await axios.get('api/admin/announcements');
+        const response = await axios.get('/api/admin/announcements');
         if (response.data.success) {
             announcements.value = response.data.data;
         }
@@ -212,7 +212,7 @@ const save = async () => {
             await axios.put(`/api/admin/announcements/${editedItem.value.id}`, editedItem.value);
             alertSuccess('Pengumuman berhasil diperbarui');
         } else {
-            await axios.post('api/admin/announcements', editedItem.value);
+            await axios.post('/api/admin/announcements', editedItem.value);
             alertSuccess('Pengumuman berhasil ditambahkan');
         }
         fetchAnnouncements();

@@ -271,7 +271,11 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import axios from 'axios';
+
+const user = JSON.parse(localStorage.getItem('user') || '{}');
+const apiPrefix = (user.role === 'guru' || (user.role && user.role.name === 'guru')) ? '/api/guru' : '/api/admin';
 import { useAlert } from '../../../composables/useAlert';
 import QuestionManager from './Questions.vue';
 import PreviewDialog from './Preview.vue';
@@ -342,7 +346,7 @@ const formatDate = (dateString) => {
 const loadQuizzes = async () => {
     loading.value = true;
     try {
-        const response = await axios.get('api/admin/quizzes');
+        const response = await axios.get(`${apiPrefix}/quizzes`);
         if (response.data.success) {
             quizzes.value = response.data.data;
         }
@@ -399,7 +403,7 @@ const deleteItem = async (item) => {
     const confirmed = await showConfirm('Apakah Anda yakin ingin menghapus ujian ini?');
     if (confirmed) {
         try {
-            await axios.delete(`api/admin/quizzes/${item.id}`);
+            await axios.delete(`${apiPrefix}/quizzes/${item.id}`);
             quizzes.value = quizzes.value.filter(q => q.id !== item.id);
             showSuccess('Ujian berhasil dihapus');
         } catch (error) {
@@ -415,7 +419,7 @@ const deleteItem = async (item) => {
 
 const loadClasses = async () => {
     try {
-        const response = await axios.get('api/admin/classes');
+        const response = await axios.get(`${apiPrefix}/classes`);
         if (response.data.success) {
             classes.value = response.data.data;
         }
@@ -426,7 +430,7 @@ const loadClasses = async () => {
 
 const loadSubjects = async () => {
     try {
-        const response = await axios.get('api/admin/subjects');
+        const response = await axios.get(`${apiPrefix}/subjects`);
         if (response.data.success) {
             subjects.value = response.data.data;
         }
@@ -450,11 +454,11 @@ const save = async () => {
         }
 
         if (editedIndex.value > -1) {
-            const response = await axios.put(`api/admin/quizzes/${editedItem.value.id}`, payload);
+            const response = await axios.put(`${apiPrefix}/quizzes/${editedItem.value.id}`, payload);
             Object.assign(quizzes.value[editedIndex.value], response.data.data);
             showSuccess('Ujian berhasil diperbarui');
         } else {
-            const response = await axios.post('api/admin/quizzes', payload);
+            const response = await axios.post(`${apiPrefix}/quizzes`, payload);
             quizzes.value.push(response.data.data);
             showSuccess('Ujian berhasil ditambahkan');
         }

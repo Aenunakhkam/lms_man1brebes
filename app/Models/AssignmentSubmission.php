@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class AssignmentSubmission extends Model
 {
     protected $fillable = [
-        'assignment_id', 'student_id', 'file_path', 
-        'submitted_at', 'score', 'feedback'
+        'assignment_id', 'student_id', 'content', 'file_path', 
+        'submitted_at', 'score', 'feedback', 'graded_at', 'status'
     ];
 
     public function assignment()

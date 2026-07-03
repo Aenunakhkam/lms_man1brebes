@@ -71,7 +71,7 @@ const loading = ref(false);
 const fetchClasses = async () => {
     loading.value = true;
     try {
-        const response = await axios.get('api/guru/classes');
+        const response = await axios.get('/api/guru/classes');
         if (response.data.success) {
             classes.value = response.data.data;
         }

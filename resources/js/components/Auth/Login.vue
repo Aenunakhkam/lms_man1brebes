@@ -154,7 +154,7 @@ const Laravel = window.Laravel;
 
 const fetchSettings = async () => {
     try {
-        const response = await axios.get('api/settings');
+        const response = await axios.get('/api/settings');
         if (response.data.success) {
             appSettings.value = response.data.data;
         }
@@ -190,7 +190,7 @@ const handleLogin = async () => {
     errors.value = { email: [], password: [] };
 
     try {
-        const response = await axios.post('api/login', {
+        const response = await axios.post('/api/login', {
             email: email.value,
             password: password.value
         });

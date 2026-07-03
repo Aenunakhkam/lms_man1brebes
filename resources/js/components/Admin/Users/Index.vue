@@ -44,7 +44,7 @@
                     <input type="file" ref="fileInput" hidden @change="handleImport" accept=".xlsx,.xls">
 
                     <v-btn color="primary" prepend-icon="mdi-plus" @click="openDialog()">
-                        Tambah User
+                        {{ buttonText }}
                     </v-btn>
                 </div>
             </v-card-title>
@@ -73,12 +73,27 @@
                     </v-icon>
                 </template>
                 <template v-slot:item.actions="{ item }">
-                    <v-icon size="small" class="me-2" color="primary" @click="openDialog(item)">
-                        mdi-pencil
-                    </v-icon>
-                    <v-icon size="small" color="error" @click="deleteItem(item)">
-                        mdi-delete
-                    </v-icon>
+                    <v-tooltip text="Reset Password">
+                        <template v-slot:activator="{ props }">
+                            <v-icon v-bind="props" size="small" class="me-2" color="warning" @click="resetPassword(item)">
+                                mdi-lock-reset
+                            </v-icon>
+                        </template>
+                    </v-tooltip>
+                    <v-tooltip text="Edit">
+                        <template v-slot:activator="{ props }">
+                            <v-icon v-bind="props" size="small" class="me-2" color="primary" @click="openDialog(item)">
+                                mdi-pencil
+                            </v-icon>
+                        </template>
+                    </v-tooltip>
+                    <v-tooltip text="Hapus">
+                        <template v-slot:activator="{ props }">
+                            <v-icon v-bind="props" size="small" color="error" @click="deleteItem(item)">
+                                mdi-delete
+                            </v-icon>
+                        </template>
+                    </v-tooltip>
                 </template>
             </v-data-table>
         </v-card>
@@ -87,7 +102,7 @@
         <v-dialog v-model="dialog" max-width="700px">
             <v-card>
                 <v-card-title>
-                    <span class="text-h5">{{ editedIndex === -1 ? 'Tambah User' : 'Edit User' }}</span>
+                    <span class="text-h5">{{ dialogTitle }}</span>
                 </v-card-title>
 
                 <v-card-text>
@@ -120,7 +135,7 @@
                                     :rules="editedIndex === -1 ? [v => !!v || 'Password wajib diisi'] : []"
                                 ></v-text-field>
                             </v-col>
-                            <v-col cols="12" md="6">
+                            <v-col cols="12" md="6" v-if="!roleFilter">
                                 <v-select
                                     v-model="editedItem.role_id"
                                     :items="roles"
@@ -257,12 +272,25 @@ const pageTitle = computed(() => {
     return 'Data Pengguna';
 });
 
+const buttonText = computed(() => {
+    if (roleFilter.value === 'guru') return 'Tambah Guru';
+    if (roleFilter.value === 'siswa') return 'Tambah Siswa';
+    return 'Tambah User';
+});
+
+const dialogTitle = computed(() => {
+    const action = editedIndex.value === -1 ? 'Tambah' : 'Edit';
+    if (roleFilter.value === 'guru') return `${action} Guru`;
+    if (roleFilter.value === 'siswa') return `${action} Siswa`;
+    return `${action} User`;
+});
+
 const loadData = async () => {
     loading.value = true;
     try {
         const params = {};
         if (roleFilter.value) params.role = roleFilter.value;
-        const response = await axios.get('api/admin/users', { params });
+        const response = await axios.get('/api/admin/users', { params });
         items.value = response.data.data;
     } catch (error) {
         console.error('Error loading data:', error);
@@ -353,7 +381,7 @@ const handleImport = async (event) => {
 
     loading.value = true;
     try {
-        const response = await axios.post('api/admin/users/import', formData, {
+        const response = await axios.post('/api/admin/users/import', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
         
@@ -422,7 +450,7 @@ const save = async () => {
             await axios.put(`/api/admin/users/${editedItem.value.id}`, payload);
             showSuccess('Berhasil!', 'Data telah diperbarui');
         } else {
-            await axios.post('api/admin/users', payload);
+            await axios.post('/api/admin/users', payload);
             showSuccess('Berhasil!', 'Data baru telah ditambahkan');
         }
         await loadData();
@@ -450,6 +478,22 @@ const deleteItem = async (item) => {
             await loadData();
         } catch (error) {
             showError('Gagal!', 'Terjadi kesalahan saat menghapus data');
+        }
+    }
+};
+
+const resetPassword = async (item) => {
+    const confirmed = await showConfirm(
+        'Reset Password?',
+        `Apakah Anda yakin ingin mereset password pengguna ${item.name} menjadi "password123"?`
+    );
+    
+    if (confirmed) {
+        try {
+            await axios.post(`/api/admin/users/${item.id}/reset-password`);
+            showSuccess('Berhasil!', `Password untuk ${item.name} telah direset menjadi "password123"`);
+        } catch (error) {
+            showError('Gagal!', error.response?.data?.message || 'Terjadi kesalahan saat mereset password');
         }
     }
 };

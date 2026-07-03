@@ -27,17 +27,31 @@
                         </div>
                     </v-card-item>
                     <v-divider></v-divider>
-                    <v-card-actions class="pa-4">
+                    <v-card-actions class="pa-4 flex-column">
                         <v-btn
+                            v-if="material.file_path"
                             color="primary"
                             variant="flat"
                             rounded="lg"
                             block
                             prepend-icon="mdi-download"
-                            :href="material.file_path"
+                            :href="`/storage/${material.file_path}`"
+                            target="_blank"
+                            class="mb-2"
+                        >
+                            Unduh File
+                        </v-btn>
+                        <v-btn
+                            v-if="material.link"
+                            color="info"
+                            variant="tonal"
+                            rounded="lg"
+                            block
+                            prepend-icon="mdi-link"
+                            :href="material.link"
                             target="_blank"
                         >
-                            Unduh Materi
+                            Buka Tautan (Link)
                         </v-btn>
                     </v-card-actions>
                 </v-card>
@@ -61,7 +75,7 @@ const loading = ref(false);
 const fetchMaterials = async () => {
     loading.value = true;
     try {
-        const response = await axios.get('api/siswa/materials');
+        const response = await axios.get('/api/siswa/materials');
         if (response.data.success) {
             materials.value = response.data.data;
         }

@@ -9,7 +9,7 @@ class Material extends Model
     protected $fillable = [
         'teacher_id', 'class_id', 'subject_id', 'title', 
         'description', 'type', 'file_path', 'file_type', 
-        'file_size', 'link_url', 'order'
+        'file_size', 'link_url', 'link', 'order'
     ];
 
     public function teacher()

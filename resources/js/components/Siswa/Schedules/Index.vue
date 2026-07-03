@@ -65,7 +65,7 @@ const headers = [
 const fetchSchedules = async () => {
     loading.value = true;
     try {
-        const response = await axios.get('api/siswa/schedules');
+        const response = await axios.get('/api/siswa/schedules');
         if (response.data.success) {
             schedules.value = response.data.data;
         }

@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Announcement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class AnnouncementController extends Controller
 {
@@ -42,6 +45,39 @@ class AnnouncementController extends Controller
             'is_active' => $request->is_active ?? true,
             'user_id' => auth()->id()
         ]);
+
+        if ($announcement->is_active) {
+            $usersQuery = User::with('role');
+            if ($announcement->target_role !== 'all') {
+                $usersQuery->whereHas('role', function($q) use ($announcement) {
+                    $q->where('name', $announcement->target_role);
+                });
+            } else {
+                $usersQuery->whereHas('role', function($q) {
+                    $q->whereIn('name', ['guru', 'siswa']);
+                });
+            }
+            $users = $usersQuery->get();
+            
+            $notificationsData = [];
+            $now = Carbon::now();
+            foreach ($users as $u) {
+                $role = $u->role ? $u->role->name : 'siswa';
+                $notificationsData[] = [
+                    'user_id' => $u->id,
+                    'title' => 'Pengumuman Baru',
+                    'message' => 'Ada pengumuman baru: ' . $announcement->title,
+                    'type' => 'announcement',
+                    'link' => '/' . $role . '/announcements',
+                    'is_read' => false,
+                    'created_at' => $now,
+                    'updated_at' => $now
+                ];
+            }
+            if (count($notificationsData) > 0) {
+                DB::table('notifications')->insert($notificationsData);
+            }
+        }
 
         return response()->json([
             'success' => true,

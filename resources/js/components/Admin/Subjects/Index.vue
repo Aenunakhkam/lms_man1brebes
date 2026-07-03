@@ -118,7 +118,7 @@ const formTitle = computed(() => {
 const loadSubjects = async () => {
     loading.value = true;
     try {
-        const response = await axios.get('api/admin/subjects');
+        const response = await axios.get('/api/admin/subjects');
         if (response.data.success) {
             subjects.value = response.data.data;
         }
@@ -159,7 +159,7 @@ const save = async () => {
             Object.assign(subjects.value[editedIndex.value], response.data.data);
             showSuccess('Mata pelajaran berhasil diperbarui');
         } else {
-            const response = await axios.post('api/admin/subjects', editedItem.value);
+            const response = await axios.post('/api/admin/subjects', editedItem.value);
             subjects.value.push(response.data.data);
             showSuccess('Mata pelajaran berhasil ditambahkan');
         }

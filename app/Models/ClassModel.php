@@ -11,7 +11,7 @@ class ClassModel extends Model
     protected $table = 'classes';
 
     protected $fillable = [
-        'academic_year_id',
+
         'department_id',
         'name',
         'grade_level',

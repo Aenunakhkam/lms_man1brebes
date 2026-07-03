@@ -8,7 +8,7 @@ class Assignment extends Model
 {
     protected $fillable = [
         'teacher_id', 'class_id', 'subject_id', 'title', 
-        'instruction', 'file_path', 'deadline', 'max_points'
+        'description', 'attachment', 'start_time', 'deadline', 'max_score'
     ];
 
     public function teacher()

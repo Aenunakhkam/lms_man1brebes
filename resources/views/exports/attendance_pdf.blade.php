@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <title>Rekap Nilai Siswa</title>
+    <title>Rekap Presensi Siswa</title>
     <style>
         body { 
             font-family: 'Helvetica', 'Arial', sans-serif; 
@@ -28,29 +28,22 @@
         .info table { width: 100%; border: none; }
         .info td { padding: 2px 0; border: none; font-weight: bold; }
 
-        .grade-table { 
+        .attendance-table { 
             width: 100%; 
             border-collapse: collapse; 
-            table-layout: fixed; /* Ensures even column distribution */
         }
-        .grade-table th, .grade-table td { 
+        .attendance-table th, .attendance-table td { 
             border: 1px solid #000; 
             padding: 6px 4px; 
             text-align: center; 
-            word-wrap: break-word; /* Prevents overflow */
         }
-        .grade-table th { 
+        .attendance-table th { 
             background-color: #f0f4f8; 
-            font-size: 9px;
+            font-size: 10px;
             text-transform: uppercase;
         }
-        .grade-table td { font-size: 10px; }
         .text-left { text-align: left !important; padding-left: 8px !important; }
         
-        .name-col { width: 25%; }
-        .no-col { width: 30px; }
-        .final-col { width: 60px; background-color: #fff9c4 !important; font-weight: bold; }
-
         .footer { 
             position: fixed; 
             bottom: -15px; 
@@ -63,9 +56,7 @@
             color: #666;
         }
         
-        @page {
-            margin: 1cm;
-        }
+        @page { margin: 1cm; }
     </style>
 </head>
 <body>
@@ -76,7 +67,7 @@
     </div>
 
     <div class="title">
-        <h3>REKAPITULASI NILAI {{ strtoupper($subject->name) }}</h3>
+        <h3>REKAPITULASI PRESENSI SISWA</h3>
     </div>
 
     <div class="info">
@@ -90,44 +81,43 @@
                 <td width="33%">{{ date('Y') }}/{{ date('Y') + 1 }}</td>
             </tr>
             <tr>
-                <td>GURU PENGAMPU</td>
+                <td>PERIODE</td>
                 <td>:</td>
-                <td>{{ strtoupper($teacher->name) }}</td>
-                <td>SEMESTER</td>
-                <td>:</td>
-                <td>-</td>
+                <td>{{ strtoupper($period) }}</td>
+                <td></td>
+                <td></td>
+                <td></td>
             </tr>
         </table>
     </div>
 
-    <table class="grade-table">
+    <table class="attendance-table">
         <thead>
             <tr>
-                <th class="no-col">NO</th>
-                <th class="name-col text-left">NAMA SISWA</th>
-                @foreach($categories as $cat)
-                    <th>{{ $cat }}</th>
-                @endforeach
-                <th class="final-col">RATA-RATA</th>
+                <th width="5%">NO</th>
+                <th width="35%" class="text-left">NAMA SISWA</th>
+                <th width="15%">HADIR</th>
+                <th width="15%">IZIN</th>
+                <th width="15%">SAKIT</th>
+                <th width="15%">ALPA</th>
             </tr>
         </thead>
         <tbody>
             @foreach($students as $index => $student)
+                @php 
+                    $studentAtt = $attendances->get($student->id, collect());
+                    $hadir = $studentAtt->where('status', 'Hadir')->count();
+                    $izin = $studentAtt->where('status', 'Izin')->count();
+                    $sakit = $studentAtt->where('status', 'Sakit')->count();
+                    $alpa = $studentAtt->where('status', 'Alpa')->count();
+                @endphp
                 <tr>
                     <td>{{ $loop->iteration }}</td>
                     <td class="text-left">{{ strtoupper($student->name) }}</td>
-                    @php $total = 0; $count = 0; @endphp
-                    @foreach($categories as $cat)
-                        @php 
-                            $grade = $grades->where('student_id', $student->id)->where('grade_type', $cat)->first();
-                            $score = $grade ? $grade->score : 0;
-                            if($grade) { $total += $score; $count++; }
-                        @endphp
-                        <td>{{ $grade ? number_format($score, 0) : '-' }}</td>
-                    @endforeach
-                    <td class="final-col">
-                        {{ $count > 0 ? number_format($total / $count, 1) : '0' }}
-                    </td>
+                    <td>{{ $hadir }}</td>
+                    <td>{{ $izin }}</td>
+                    <td>{{ $sakit }}</td>
+                    <td>{{ $alpa }}</td>
                 </tr>
             @endforeach
         </tbody>

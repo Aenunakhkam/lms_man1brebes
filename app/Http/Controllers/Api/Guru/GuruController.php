@@ -11,14 +11,15 @@ use App\Models\ClassModel;
 use App\Models\Subject;
 use App\Models\User;
 use App\Models\Grade;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 use App\Exports\GradesExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
-use App\Models\Setting;
 use Illuminate\Support\Str;
 
 class GuruController extends Controller
@@ -129,6 +130,7 @@ class GuruController extends Controller
             'subject_id' => 'required|exists:subjects,id',
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'link' => 'nullable|string|url',
             'file' => 'nullable|file|max:10240', // 10MB
         ]);
 
@@ -153,6 +155,71 @@ class GuruController extends Controller
         ]);
     }
 
+    public function updateMaterial(Request $request, Material $material)
+    {
+        if ($material->teacher_id !== Auth::id()) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'class_id' => 'required|exists:classes,id',
+            'subject_id' => 'required|exists:subjects,id',
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'link' => 'nullable|string|url',
+            'file' => 'nullable|file|max:10240', // 10MB
+        ]);
+
+        $data = $validated;
+
+        if ($request->hasFile('file')) {
+            // Delete old file
+            if ($material->file_path && Storage::disk('public')->exists($material->file_path)) {
+                Storage::disk('public')->delete($material->file_path);
+            }
+
+            $file = $request->file('file');
+            $path = $file->store('materials', 'public');
+            $data['file_path'] = $path;
+            $data['file_type'] = $file->getClientOriginalExtension();
+            $data['file_size'] = $file->getSize();
+        } elseif ($request->boolean('remove_file')) {
+            // Remove existing file without uploading a new one
+            if ($material->file_path && Storage::disk('public')->exists($material->file_path)) {
+                Storage::disk('public')->delete($material->file_path);
+            }
+            $data['file_path'] = null;
+            $data['file_type'] = null;
+            $data['file_size'] = null;
+        }
+
+        $material->update($data);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Materi berhasil diperbarui',
+            'data' => $material
+        ]);
+    }
+
+    public function destroyMaterial(Material $material)
+    {
+        if ($material->teacher_id !== Auth::id()) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        if ($material->file_path && Storage::disk('public')->exists($material->file_path)) {
+            Storage::disk('public')->delete($material->file_path);
+        }
+
+        $material->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Materi berhasil dihapus'
+        ]);
+    }
+
     public function getAssignments()
     {
         $teacherId = Auth::id();
@@ -174,18 +241,167 @@ class GuruController extends Controller
             'class_id' => 'required|exists:classes,id',
             'subject_id' => 'required|exists:subjects,id',
             'title' => 'required|string|max:255',
-            'instruction' => 'required|string',
-            'deadline' => 'required|date',
-            'max_points' => 'nullable|integer'
+            'description' => 'required|string',
+            'start_time' => 'required|date',
+            'deadline' => 'required|date|after_or_equal:start_time',
+            'max_score' => 'nullable|integer'
         ]);
 
         $validated['teacher_id'] = Auth::id();
         $assignment = Assignment::create($validated);
 
+        // Kirim notifikasi ke siswa di kelas tersebut
+        $class = ClassModel::with('students')->find($validated['class_id']);
+        if ($class && $class->students->count() > 0) {
+            $notificationsData = [];
+            $now = Carbon::now();
+            foreach ($class->students as $student) {
+                $notificationsData[] = [
+                    'user_id' => $student->id,
+                    'title' => 'Tugas Baru',
+                    'message' => 'Ada tugas baru: ' . $assignment->title,
+                    'type' => 'assignment',
+                    'link' => '/siswa/assignments/' . $assignment->id,
+                    'is_read' => false,
+                    'created_at' => $now,
+                    'updated_at' => $now
+                ];
+            }
+            if (count($notificationsData) > 0) {
+                DB::table('notifications')->insert($notificationsData);
+            }
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Tugas berhasil ditambahkan',
             'data' => $assignment
+        ]);
+    }
+
+    public function updateAssignment(Request $request, Assignment $assignment)
+    {
+        if ($assignment->teacher_id !== Auth::id()) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'class_id' => 'required|exists:classes,id',
+            'subject_id' => 'required|exists:subjects,id',
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'start_time' => 'required|date',
+            'deadline' => 'required|date|after_or_equal:start_time',
+            'max_score' => 'nullable|integer'
+        ]);
+
+        $assignment->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tugas berhasil diperbarui',
+            'data' => $assignment
+        ]);
+    }
+
+    public function destroyAssignment(Assignment $assignment)
+    {
+        if ($assignment->teacher_id !== Auth::id()) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        // Hapus nilai di tabel grades yang terhubung dengan tugas ini
+        Grade::where('gradable_type', Assignment::class)
+            ->where('gradable_id', $assignment->id)
+            ->delete();
+
+        // Hapus juga assignment submissions yang terhubung
+        \App\Models\AssignmentSubmission::where('assignment_id', $assignment->id)->delete();
+
+        $assignment->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tugas berhasil dihapus'
+        ]);
+    }
+
+    public function getAssignmentSubmissions(Assignment $assignment)
+    {
+        if ($assignment->teacher_id !== Auth::id()) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $submissions = \App\Models\AssignmentSubmission::with('student')
+            ->where('assignment_id', $assignment->id)
+            ->get();
+
+        // Include students in the class to show who hasn't submitted
+        $students = $assignment->class->students;
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'assignment' => $assignment,
+                'submissions' => $submissions,
+                'students' => $students
+            ]
+        ]);
+    }
+
+    public function gradeAssignmentSubmission(Request $request, $submissionId)
+    {
+        $submission = \App\Models\AssignmentSubmission::findOrFail($submissionId);
+        $assignment = $submission->assignment;
+
+        if ($assignment->teacher_id !== Auth::id()) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'score' => 'required|integer|min:0|max:' . ($assignment->max_score ?? 100),
+            'feedback' => 'nullable|string'
+        ]);
+
+        $submission->update([
+            'score' => $validated['score'],
+            'feedback' => $validated['feedback'],
+            'graded_at' => Carbon::now(),
+            'status' => 'graded'
+        ]);
+
+        // Simpan/perbarui nilai di tabel grades agar muncul di menu Nilai Siswa
+        \App\Models\Grade::updateOrCreate(
+            [
+                'student_id'    => $submission->student_id,
+                'gradable_id'   => $assignment->id,
+                'gradable_type' => \App\Models\Assignment::class,
+            ],
+            [
+                'class_id'   => $assignment->class_id,
+                'subject_id' => $assignment->subject_id,
+                'grade_type' => 'assignment',
+                'score'      => $validated['score'],
+                'max_score'  => $assignment->max_score ?? 100,
+                'notes'      => $validated['feedback'],
+            ]
+        );
+
+        // Kirim notifikasi ke siswa bahwa tugasnya telah dinilai
+        DB::table('notifications')->insert([
+            'user_id'    => $submission->student_id,
+            'title'      => 'Tugas Dinilai',
+            'message'    => 'Tugas ' . $assignment->title . ' telah dinilai oleh Guru.',
+            'type'       => 'assignment',
+            'link'       => '/siswa/assignments/' . $assignment->id,
+            'is_read'    => false,
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now()
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Penilaian berhasil disimpan'
         ]);
     }
 
@@ -226,8 +442,19 @@ class GuruController extends Controller
             'attendance.*.status' => 'required|in:Hadir,Izin,Sakit,Alpa',
         ]);
 
-        // Logic to save attendance to database (need attendance table)
-        // For now, return success to verify frontend working
+        foreach ($request->attendance as $att) {
+            \App\Models\Attendance::updateOrCreate(
+                [
+                    'student_id' => $att['student_id'],
+                    'class_id' => $request->class_id,
+                    'date' => $request->date,
+                ],
+                [
+                    'status' => $att['status'],
+                ]
+            );
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Presensi berhasil disimpan'
@@ -245,6 +472,7 @@ class GuruController extends Controller
         $grades = Grade::where('class_id', $request->class_id)
             ->where('subject_id', $request->subject_id)
             ->where('grade_type', $request->category)
+            ->whereNull('gradable_type') // hanya nilai manual
             ->get();
 
         return response()->json([
@@ -268,15 +496,17 @@ class GuruController extends Controller
         foreach ($request->grades as $gradeData) {
             Grade::updateOrCreate(
                 [
-                    'student_id' => $gradeData['student_id'],
-                    'class_id' => $request->class_id,
-                    'subject_id' => $request->subject_id,
-                    'grade_type' => $request->category,
+                    'student_id'    => $gradeData['student_id'],
+                    'class_id'      => $request->class_id,
+                    'subject_id'    => $request->subject_id,
+                    'grade_type'    => $request->category,
+                    'gradable_type' => null, // null = input manual guru (bukan dari tugas)
+                    'gradable_id'   => null,
                 ],
                 [
-                    'score' => $gradeData['score'],
-                    'notes' => $gradeData['note'],
-                    'max_score' => 100, // Default max score
+                    'score'     => $gradeData['score'],
+                    'notes'     => $gradeData['note'],
+                    'max_score' => 100,
                 ]
             );
         }
@@ -298,11 +528,70 @@ class GuruController extends Controller
         Grade::where('class_id', $request->class_id)
             ->where('subject_id', $request->subject_id)
             ->where('grade_type', $request->category)
+            ->whereNull('gradable_type') // hanya hapus nilai manual
             ->delete();
 
         return response()->json([
             'success' => true,
             'message' => 'Nilai kategori ' . $request->category . ' berhasil dihapus'
+        ]);
+    }
+
+    public function updateGrade(Request $request, Grade $grade)
+    {
+        // Pastikan ini guru yang bersangkutan (validasi via kelas yang diampu)
+        $teacherId = Auth::id();
+        $isTeaching = \App\Models\Schedule::where('teacher_id', $teacherId)
+            ->where('class_id', $grade->class_id)
+            ->where('subject_id', $grade->subject_id)
+            ->exists();
+
+        if (!$isTeaching) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'score' => 'required|numeric|min:0|max:100',
+            'notes' => 'nullable|string',
+        ]);
+
+        $grade->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Nilai berhasil diperbarui',
+            'data' => $grade
+        ]);
+    }
+
+    public function destroyGrade(Grade $grade)
+    {
+        $teacherId = Auth::id();
+        $isTeaching = \App\Models\Schedule::where('teacher_id', $teacherId)
+            ->where('class_id', $grade->class_id)
+            ->where('subject_id', $grade->subject_id)
+            ->exists();
+
+        if (!$isTeaching) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        // Jika grade ini terhubung dengan tugas, reset status submission di siswa
+        if ($grade->gradable_type === \App\Models\Assignment::class) {
+            \App\Models\AssignmentSubmission::where('assignment_id', $grade->gradable_id)
+                ->where('student_id', $grade->student_id)
+                ->update([
+                    'score' => null,
+                    'status' => 'submitted',
+                    'graded_at' => null
+                ]);
+        }
+
+        $grade->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Nilai siswa berhasil dihapus'
         ]);
     }
 
@@ -317,13 +606,23 @@ class GuruController extends Controller
             $q->where('class_id', $request->class_id);
         })->get();
 
+        // Hanya ambil nilai MANUAL (bukan dari tugas otomatis)
+        // gradable_type null artinya input manual oleh guru
         $categories = Grade::where('class_id', $request->class_id)
             ->where('subject_id', $request->subject_id)
+            ->where(function($q) {
+                $q->whereNull('gradable_type')
+                  ->orWhere('gradable_type', '');
+            })
             ->distinct('grade_type')
             ->pluck('grade_type');
 
         $grades = Grade::where('class_id', $request->class_id)
             ->where('subject_id', $request->subject_id)
+            ->where(function($q) {
+                $q->whereNull('gradable_type')
+                  ->orWhere('gradable_type', '');
+            })
             ->get();
 
         return response()->json([

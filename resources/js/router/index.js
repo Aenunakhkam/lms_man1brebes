@@ -123,6 +123,11 @@ const routes = [
                 component: () => import('../components/Guru/Assignments/Index.vue')
             },
             {
+                path: 'assignments/:id/submissions',
+                name: 'GuruAssignmentSubmissions',
+                component: () => import('../components/Guru/Assignments/Submissions.vue')
+            },
+            {
                 path: 'attendance',
                 name: 'GuruAttendance',
                 component: () => import('../components/Guru/Attendance/Index.vue')
@@ -133,6 +138,11 @@ const routes = [
                 component: () => import('../components/Guru/Grades/Index.vue')
             },
             {
+                path: 'cbt',
+                name: 'GuruCBT',
+                component: () => import('../components/Admin/CBT/Index.vue')
+            },
+            {
                 path: 'schedules',
                 name: 'GuruSchedules',
                 component: () => import('../components/Guru/Schedules/Index.vue')
@@ -140,7 +150,7 @@ const routes = [
             {
                 path: 'announcements',
                 name: 'GuruAnnouncements',
-                component: () => import('../components/Admin/Announcements/Index.vue') // Reuse admin if compatible or create specific
+                component: () => import('../components/Siswa/Announcements/Index.vue')
             },
             {
                 path: 'profile',
@@ -170,6 +180,11 @@ const routes = [
                 component: () => import('../components/Siswa/Assignments/Index.vue')
             },
             {
+                path: 'assignments/:id',
+                name: 'SiswaAssignmentDetail',
+                component: () => import('../components/Siswa/Assignments/Detail.vue')
+            },
+            {
                 path: 'attendance',
                 name: 'SiswaAttendance',
                 component: () => import('../components/Siswa/Attendance/Index.vue')
@@ -193,6 +208,11 @@ const routes = [
                 path: 'cbt/quiz/:attemptId',
                 name: 'SiswaQuizRoom',
                 component: () => import('../components/Siswa/CBT/QuizRoom.vue')
+            },
+            {
+                path: 'announcements',
+                name: 'SiswaAnnouncements',
+                component: () => import('../components/Siswa/Announcements/Index.vue')
             },
             {
                 path: 'profile',

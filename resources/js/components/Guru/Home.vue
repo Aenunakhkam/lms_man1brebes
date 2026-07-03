@@ -248,7 +248,7 @@ const filteredClasses = computed(() => {
 const fetchAnnouncements = async () => {
     try {
         loadingAnnouncements.value = true;
-        const response = await axios.get('api/announcements');
+        const response = await axios.get('/api/announcements');
         if (response.data.success) {
             announcements.value = response.data.data;
         }
@@ -262,7 +262,7 @@ const fetchAnnouncements = async () => {
 const fetchStats = async () => {
     statsLoading.value = true;
     try {
-        const response = await axios.get('api/guru/dashboard-stats');
+        const response = await axios.get('/api/guru/dashboard-stats');
         if (response.data.success) {
             stats.value = response.data.data;
         }
@@ -276,7 +276,7 @@ const fetchStats = async () => {
 const fetchClasses = async () => {
     classesLoading.value = true;
     try {
-        const response = await axios.get('api/guru/classes');
+        const response = await axios.get('/api/guru/classes');
         if (response.data.success) {
             classes.value = response.data.data;
         }

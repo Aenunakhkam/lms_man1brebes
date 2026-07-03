@@ -113,7 +113,7 @@ const itemToDelete = ref(null);
 const loadData = async () => {
     loading.value = true;
     try {
-        const response = await axios.get('api/admin/departments');
+        const response = await axios.get('/api/admin/departments');
         items.value = response.data.data;
     } catch (error) {
         console.error('Error loading data:', error);
@@ -149,14 +149,16 @@ const save = async () => {
     try {
         if (editedIndex.value > -1) {
             await axios.put(`/api/admin/departments/${editedItem.value.id}`, editedItem.value);
+            showSuccess('Berhasil!', 'Jurusan berhasil diperbarui');
         } else {
-            await axios.post('api/admin/departments', editedItem.value);
+            await axios.post('/api/admin/departments', editedItem.value);
+            showSuccess('Berhasil!', 'Jurusan berhasil ditambahkan');
         }
         await loadData();
         closeDialog();
     } catch (error) {
         console.error('Error saving data:', error);
-        alert('Gagal menyimpan data');
+        showError('Gagal!', error.response?.data?.message || 'Gagal menyimpan data');
     }
 };
 

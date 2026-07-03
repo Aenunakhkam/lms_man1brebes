@@ -54,20 +54,21 @@ class SiswaController extends Controller
 
         // 4. Upcoming Assignments (Top 4)
         $upcomingAssignments = Assignment::with(['subject'])
+            ->withExists(['submissions as is_submitted' => function ($query) use ($studentId) {
+                $query->where('student_id', $studentId);
+            }])
             ->where('class_id', $classId)
-            ->where('due_date', '>=', Carbon::now())
-            ->orderBy('due_date', 'asc')
+            ->where('deadline', '>=', Carbon::now())
+            ->orderBy('deadline', 'asc')
             ->limit(4)
             ->get()
-            ->map(function($assignment) use ($studentId) {
-                $isSubmitted = AssignmentSubmission::where('assignment_id', $assignment->id)
-                    ->where('student_id', $studentId)
-                    ->exists();
-                $assignment->is_submitted = $isSubmitted;
+            ->map(function($assignment) {
+                // withExists casts to boolean but let's just make sure
+                $assignment->is_submitted = (bool) $assignment->is_submitted;
                 
                 // Calculate days remaining
                 $now = Carbon::now();
-                $due = Carbon::parse($assignment->due_date);
+                $due = Carbon::parse($assignment->deadline);
                 $assignment->days_remaining = $now->diffInDays($due, false);
                 
                 return $assignment;
@@ -172,13 +173,130 @@ class SiswaController extends Controller
         ]);
     }
 
+    public function getAssignment(Assignment $assignment)
+    {
+        $studentId = Auth::id();
+        $classId = DB::table('student_class')->where('student_id', $studentId)->value('class_id');
+
+        if ($assignment->class_id !== $classId) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $assignment->load(['subject', 'teacher']);
+        
+        $submission = \App\Models\AssignmentSubmission::where('assignment_id', $assignment->id)
+            ->where('student_id', $studentId)
+            ->first();
+            
+        $assignment->is_submitted = (bool)$submission;
+        $assignment->submission = $submission;
+
+        return response()->json([
+            'success' => true,
+            'data' => $assignment
+        ]);
+    }
+
+    public function submitAssignment(Request $request, Assignment $assignment)
+    {
+        $studentId = Auth::id();
+
+        // Check if already submitted
+        $existing = \App\Models\AssignmentSubmission::where('assignment_id', $assignment->id)
+            ->where('student_id', $studentId)
+            ->first();
+
+        if ($existing) {
+            return response()->json(['success' => false, 'message' => 'Anda sudah mengumpulkan tugas ini'], 400);
+        }
+
+        // Validate time
+        $now = \Carbon\Carbon::now();
+        if ($assignment->start_time && $now->lt(\Carbon\Carbon::parse($assignment->start_time))) {
+            return response()->json(['success' => false, 'message' => 'Tugas belum dibuka'], 400);
+        }
+
+        if ($assignment->deadline && $now->gt(\Carbon\Carbon::parse($assignment->deadline))) {
+            return response()->json(['success' => false, 'message' => 'Tugas sudah ditutup (melewati batas waktu)'], 400);
+        }
+
+        $validated = $request->validate([
+            'content' => 'nullable|string',
+            'file' => 'nullable|file|max:10240' // max 10MB
+        ]);
+
+        if (!$request->has('content') && !$request->hasFile('file')) {
+            return response()->json(['success' => false, 'message' => 'Harap isi teks jawaban atau unggah file'], 422);
+        }
+
+        $filePath = null;
+        if ($request->hasFile('file')) {
+            $filePath = $request->file('file')->store('assignments/submissions', 'public');
+        }
+
+        $submission = \App\Models\AssignmentSubmission::create([
+            'assignment_id' => $assignment->id,
+            'student_id' => $studentId,
+            'content' => $validated['content'] ?? null,
+            'file_path' => $filePath,
+            'submitted_at' => $now,
+            'status' => 'submitted'
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tugas berhasil dikumpulkan',
+            'data' => $submission
+        ]);
+    }
+
+    public function cancelSubmission(Assignment $assignment)
+    {
+        $studentId = Auth::id();
+
+        $submission = \App\Models\AssignmentSubmission::where('assignment_id', $assignment->id)
+            ->where('student_id', $studentId)
+            ->first();
+
+        if (!$submission) {
+            return response()->json(['success' => false, 'message' => 'Pengumpulan tidak ditemukan'], 404);
+        }
+
+        // Tidak bisa dibatalkan jika sudah dinilai oleh guru
+        if ($submission->status === 'graded') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pengumpulan tidak dapat dibatalkan karena sudah dinilai oleh guru'
+            ], 403);
+        }
+
+        // Hapus file jika ada
+        if ($submission->file_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($submission->file_path)) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($submission->file_path);
+        }
+
+        $submission->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pengumpulan berhasil dibatalkan. Anda dapat mengumpulkan kembali.'
+        ]);
+    }
+
     public function getGrades()
     {
         $studentId = Auth::id();
-        $grades = Grade::with(['subject'])
+        $grades = Grade::with(['subject', 'gradable'])
             ->where('student_id', $studentId)
             ->latest()
-            ->get();
+            ->get()
+            ->map(function ($grade) {
+                // Tambahkan field title agar mudah ditampilkan di frontend
+                $grade->title = optional($grade->gradable)->title
+                    ?? optional($grade->gradable)->name
+                    ?? $grade->grade_type;
+                return $grade;
+            });
 
         return response()->json([
             'success' => true,

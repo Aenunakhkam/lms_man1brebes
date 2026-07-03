@@ -20,17 +20,23 @@
                         </v-card-subtitle>
 
                         <div class="mt-4 pa-3 bg-grey-lighten-4 rounded-lg text-body-2 line-clamp-2">
-                            {{ assignment.instruction }}
+                            {{ assignment.description }}
                         </div>
 
-                        <div class="mt-4 d-flex align-center justify-space-between">
+                        <div class="mt-4 d-flex flex-column gap-2">
+                            <div class="d-flex align-center justify-space-between">
+                                <div class="d-flex align-center">
+                                    <v-icon size="16" color="success" class="mr-1">mdi-calendar-check</v-icon>
+                                    <span class="text-caption font-weight-medium">Buka: {{ formatDate(assignment.start_time) }}</span>
+                                </div>
+                                <v-chip :color="getAssignmentStatus(assignment).color" size="small" rounded="lg">
+                                    {{ getAssignmentStatus(assignment).text }}
+                                </v-chip>
+                            </div>
                             <div class="d-flex align-center">
                                 <v-icon size="16" color="error" class="mr-1">mdi-clock-outline</v-icon>
-                                <span class="text-caption font-weight-bold text-error">Deadline: {{ formatDate(assignment.deadline) }}</span>
+                                <span class="text-caption font-weight-bold text-error">Tutup: {{ formatDate(assignment.deadline) }}</span>
                             </div>
-                            <v-chip :color="assignment.is_submitted ? 'success' : 'amber'" size="small" rounded="lg">
-                                {{ assignment.is_submitted ? 'Selesai' : 'Belum Dikerjakan' }}
-                            </v-chip>
                         </div>
                     </v-card-item>
                     <v-divider></v-divider>
@@ -67,7 +73,7 @@ const loading = ref(false);
 const fetchAssignments = async () => {
     loading.value = true;
     try {
-        const response = await axios.get('api/siswa/assignments');
+        const response = await axios.get('/api/siswa/assignments');
         if (response.data.success) {
             assignments.value = response.data.data;
         }
@@ -88,6 +94,19 @@ const formatDate = (dateString) => {
         hour: '2-digit',
         minute: '2-digit'
     });
+};
+
+const getAssignmentStatus = (assignment) => {
+    if (assignment.is_submitted) return { text: 'Sudah Dikerjakan', color: 'success' };
+    
+    const now = new Date();
+    if (assignment.start_time && now < new Date(assignment.start_time)) {
+        return { text: 'Belum Dibuka', color: 'grey' };
+    }
+    if (assignment.deadline && now > new Date(assignment.deadline)) {
+        return { text: 'Ditutup', color: 'error' };
+    }
+    return { text: 'Belum Dikerjakan', color: 'warning' };
 };
 
 onMounted(fetchAssignments);

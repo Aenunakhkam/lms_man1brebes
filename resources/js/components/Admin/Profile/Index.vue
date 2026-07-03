@@ -5,9 +5,9 @@
             <v-col cols="12" md="4">
                 <v-card class="text-center pa-6" rounded="xl" elevation="2">
                     <div class="position-relative d-inline-block mb-4">
-                        <v-avatar size="150" color="grey-lighten-3" class="elevation-3">
+                        <v-avatar size="150" color="primary" class="elevation-3">
                             <v-img v-if="user?.photo" :src="Laravel.assetUrl + 'storage/' + user.photo" cover></v-img>
-                            <v-icon v-else size="80" color="grey-darken-1">mdi-account</v-icon>
+                            <span v-else class="text-white text-uppercase font-weight-bold" style="font-size: 64px;">{{ user?.name ? user.name.charAt(0) : 'A' }}</span>
                         </v-avatar>
                         <v-btn
                             icon="mdi-camera"
@@ -203,7 +203,7 @@ const passwordForm = ref({
 
 const loadProfile = async () => {
     try {
-        const response = await axios.get('api/profile');
+        const response = await axios.get('/api/profile');
         user.value = response.data.data;
         Object.keys(profileForm.value).forEach(key => {
             profileForm.value[key] = user.value[key] || '';
@@ -222,7 +222,7 @@ const handlePhotoUpload = async (event) => {
 
     photoLoading.value = true;
     try {
-        const response = await axios.post('api/profile/photo', formData, {
+        const response = await axios.post('/api/profile/photo', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
         showSuccess('Berhasil!', 'Foto profil diperbarui');
@@ -241,7 +241,7 @@ const handlePhotoUpload = async (event) => {
 
 const removePhoto = async () => {
     try {
-        await axios.delete('api/profile/photo');
+        await axios.delete('/api/profile/photo');
         showSuccess('Berhasil!', 'Foto profil dihapus');
         await loadProfile();
         const storedUser = JSON.parse(localStorage.getItem('user'));
@@ -255,7 +255,7 @@ const removePhoto = async () => {
 const updateProfile = async () => {
     profileLoading.value = true;
     try {
-        const response = await axios.post('api/profile', profileForm.value);
+        const response = await axios.post('/api/profile', profileForm.value);
         showSuccess('Berhasil!', 'Profil diperbarui');
         user.value = response.data.data;
         localStorage.setItem('user', JSON.stringify(user.value));
@@ -269,7 +269,7 @@ const updateProfile = async () => {
 const updatePassword = async () => {
     passwordLoading.value = true;
     try {
-        await axios.post('api/profile/password', passwordForm.value);
+        await axios.post('/api/profile/password', passwordForm.value);
         showSuccess('Berhasil!', 'Password berhasil diubah');
         passwordForm.value = {
             current_password: '',

@@ -121,10 +121,22 @@ class UserController extends Controller
         ]);
     }
 
+    public function resetPassword(User $user)
+    {
+        $user->update([
+            'password' => Hash::make('password123')
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password berhasil direset'
+        ]);
+    }
+
     public function export(Request $request)
     {
-        $role = $request->role;
-        $format = $request->format ?? 'excel';
+        $role = $request->input('role');
+        $format = $request->input('format', 'excel');
 
         if ($format === 'pdf') {
             $query = User::with('role');

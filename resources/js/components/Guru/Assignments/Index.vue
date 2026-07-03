@@ -105,34 +105,46 @@
                             </v-col>
                             <v-col cols="12">
                                 <v-textarea
-                                    v-model="editedItem.instruction"
+                                    v-model="editedItem.description"
                                     label="Instruksi Tugas"
                                     variant="outlined"
                                     rounded="lg"
-                                    rows="4"
                                     required
-                                    :rules="[v => !!v || 'Instruksi wajib diisi']"
+                                    rows="3"
+                                    :rules="[v => !!v || 'Instruksi tugas wajib diisi']"
                                 ></v-textarea>
                             </v-col>
                             <v-col cols="12" md="6">
                                 <v-text-field
-                                    v-model="editedItem.deadline"
-                                    label="Deadline"
+                                    v-model="editedItem.start_time"
+                                    label="Waktu Mulai (Open)"
                                     type="datetime-local"
                                     variant="outlined"
                                     rounded="lg"
                                     required
-                                    :rules="[v => !!v || 'Deadline wajib diisi']"
+                                    :rules="[v => !!v || 'Waktu mulai wajib diisi']"
                                 ></v-text-field>
                             </v-col>
                             <v-col cols="12" md="6">
                                 <v-text-field
-                                    v-model="editedItem.max_points"
+                                    v-model="editedItem.deadline"
+                                    label="Waktu Selesai (Closed)"
+                                    type="datetime-local"
+                                    variant="outlined"
+                                    rounded="lg"
+                                    required
+                                    :rules="[v => !!v || 'Waktu selesai wajib diisi']"
+                                ></v-text-field>
+                            </v-col>
+                            <v-col cols="12">
+                                <v-text-field
+                                    v-model="editedItem.max_score"
                                     label="Poin Maksimal"
                                     type="number"
                                     variant="outlined"
                                     rounded="lg"
-                                    required
+                                    min="1"
+                                    max="100"
                                 ></v-text-field>
                             </v-col>
                         </v-row>
@@ -152,6 +164,9 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
+import { useAlert } from '../../../composables/useAlert';
+
+const { showSuccess, showError, showConfirm } = useAlert();
 
 const assignments = ref([]);
 const classes = ref([]);
@@ -167,9 +182,10 @@ const editedItem = ref({
     title: '',
     class_id: null,
     subject_id: null,
-    instruction: '',
+    description: '',
+    start_time: '',
     deadline: '',
-    max_points: 100
+    max_score: 100
 });
 
 const defaultItem = {
@@ -177,9 +193,10 @@ const defaultItem = {
     title: '',
     class_id: null,
     subject_id: null,
-    instruction: '',
+    description: '',
+    start_time: '',
     deadline: '',
-    max_points: 100
+    max_score: 100
 };
 
 const headers = [
@@ -195,7 +212,7 @@ const headers = [
 const fetchAssignments = async () => {
     loading.value = true;
     try {
-        const response = await axios.get('api/guru/assignments');
+        const response = await axios.get('/api/guru/assignments');
         if (response.data.success) {
             assignments.value = response.data.data;
         }
@@ -209,8 +226,8 @@ const fetchAssignments = async () => {
 const fetchInitialData = async () => {
     try {
         const [classRes, subjectRes] = await Promise.all([
-            axios.get('api/guru/classes'),
-            axios.get('api/guru/subjects')
+            axios.get('/api/guru/classes'),
+            axios.get('/api/guru/subjects')
         ]);
         classes.value = classRes.data.data;
         subjects.value = subjectRes.data.data;
@@ -219,9 +236,24 @@ const fetchInitialData = async () => {
     }
 };
 
+const formatForInput = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
 const openDialog = (item = null) => {
     if (item) {
-        editedItem.value = { ...item };
+        editedItem.value = { 
+            ...item,
+            start_time: formatForInput(item.start_time),
+            deadline: formatForInput(item.deadline)
+        };
     } else {
         editedItem.value = { ...defaultItem };
     }
@@ -239,28 +271,33 @@ const save = async () => {
         const method = editedItem.value.id ? 'put' : 'post';
         const url = editedItem.value.id 
             ? `/api/guru/assignments/${editedItem.value.id}` 
-            : 'api/guru/assignments';
+            : '/api/guru/assignments';
         
         const response = await axios[method](url, editedItem.value);
 
         if (response.data.success) {
+            showSuccess(response.data.message);
             fetchAssignments();
             closeDialog();
         }
     } catch (error) {
         console.error('Error saving assignment:', error);
+        showError('Gagal menyimpan tugas', error.response?.data?.message || 'Terjadi kesalahan');
     } finally {
         saving.value = false;
     }
 };
 
 const confirmDelete = async (item) => {
-    if (confirm('Apakah Anda yakin ingin menghapus tugas ini?')) {
+    const confirmed = await showConfirm('Apakah Anda yakin ingin menghapus tugas ini?');
+    if (confirmed) {
         try {
-            await axios.delete(`/api/guru/assignments/${item.id}`);
+            const response = await axios.delete(`/api/guru/assignments/${item.id}`);
+            showSuccess(response.data.message);
             fetchAssignments();
         } catch (error) {
             console.error('Error deleting assignment:', error);
+            showError('Gagal menghapus tugas');
         }
     }
 };

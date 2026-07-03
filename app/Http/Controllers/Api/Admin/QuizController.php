@@ -22,11 +22,17 @@ class QuizController extends Controller
 
     public function index()
     {
-        $quizzes = Quiz::with(['classes', 'subject', 'teacher'])
+        $query = Quiz::with(['classes', 'subject', 'teacher'])
             ->withCount('questions')
             ->withSum('questions as total_points', 'points')
-            ->latest()
-            ->get();
+            ->latest();
+
+        // If the user is a guru, only show their own quizzes
+        if (auth()->user()->role && auth()->user()->role->name === 'guru') {
+            $query->where('teacher_id', auth()->id());
+        }
+
+        $quizzes = $query->get();
         return response()->json([
             'success' => true,
             'data' => $quizzes

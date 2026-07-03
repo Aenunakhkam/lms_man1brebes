@@ -1,170 +1,101 @@
-# 🏫 LMS MAN 1 Brebes
-### Learning Management System — Madrasah Aliyah Negeri 1 Brebes
+# LMS MAN 1 Brebes
 
-Aplikasi **Learning Management System (LMS)** berbasis web yang dirancang khusus untuk mendukung kegiatan belajar mengajar di MAN 1 Brebes. Aplikasi ini memudahkan Admin, Guru, dan Siswa dalam mengelola materi pembelajaran, tugas, kuis/ujian (CBT), nilai, presensi, dan pengumuman secara digital.
-
----
+LMS (Learning Management System) ini dikembangkan dengan kerangka kerja Laravel (Backend) dan Vue.js / Vuetify (Frontend) khusus untuk MAN 1 Brebes. Panduan ini akan membantu Anda menginstal dan menjalankan proyek ini di perangkat atau server (hosting) mana pun.
 
 ## 🚀 Fitur Utama
+- Panel Admin, Guru, dan Siswa
+- Manajemen Kelas dan Mata Pelajaran
+- Penugasan (Assignment) dan Pengumpulan Tugas
+- Sistem Ujian / CBT (Computer Based Test)
+- Kehadiran Siswa
+- Responsive Design (Bisa diakses dari HP maupun Laptop)
 
-| Role | Fitur |
-|------|-------|
-| **Admin** | Manajemen pengguna, kelas, mata pelajaran, pengumuman, jadwal, dan pengaturan aplikasi |
-| **Guru** | Upload materi, buat tugas & kuis (CBT), input nilai, kelola presensi, lihat jadwal mengajar |
-| **Siswa** | Akses materi, kumpul tugas, ikuti kuis (CBT), lihat nilai & presensi, lihat jadwal pelajaran |
-
----
-
-## 🛠️ Teknologi yang Digunakan
-
-### Backend
-- **PHP 8.2+**
-- **Laravel 11** — Framework PHP utama
-- **Laravel Sanctum** — Autentikasi berbasis token (API)
-- **Laravel DomPDF** — Generate laporan PDF
-- **Maatwebsite Excel** — Export data ke file Excel
-
-### Frontend
-- **Vue.js 3** — Framework JavaScript reaktif
-- **Vuetify 3** — Komponen UI Material Design
-- **Vue Router 4** — Navigasi SPA (Single Page Application)
-- **Vite** — Build tool & dev server
-- **Tailwind CSS 3** — Utility-first CSS framework
-- **SweetAlert2** — Notifikasi & dialog interaktif
-- **Axios** — HTTP client untuk request API
-
-### Database
-- **MySQL** — Database utama
+## 📋 Persyaratan Sistem
+Pastikan perangkat/server Anda telah menginstal perangkat lunak berikut:
+- **PHP** versi 8.2 atau lebih baru
+- **Composer** (untuk dependensi PHP)
+- **Node.js** & **NPM** (untuk aset Frontend)
+- **MySQL** / MariaDB (Database)
+- Web Server (Apache/Nginx/Laragon/XAMPP)
 
 ---
 
-## 📦 Aplikasi yang Dibutuhkan
+## 🛠️ Panduan Instalasi (Development / Lokal)
 
-Pastikan semua aplikasi berikut sudah terinstal di komputer Anda sebelum menjalankan program:
+1. **Kloning Repositori**
+   Buka terminal/CMD dan jalankan perintah berikut:
+   ```bash
+   git clone https://github.com/Aenunakhkam/lms_man1brebes.git
+   cd lms_man1brebes
+   ```
 
-| Aplikasi | Versi Minimal | Keterangan |
-|----------|--------------|------------|
-| **PHP** | 8.2+ | Runtime backend |
-| **Composer** | 2.x | Package manager PHP |
-| **Node.js** | 18+ | Runtime JavaScript |
-| **NPM** | 9+ | Package manager JavaScript (bawaan Node.js) |
-| **MySQL** | 8.0+ | Database server |
-| **Git** | 2.x | Version control |
-| **Laragon / XAMPP / WAMP** | Terbaru | (Opsional) Web server lokal untuk kemudahan instalasi |
+2. **Instal Dependensi PHP & Node**
+   ```bash
+   composer install
+   npm install
+   ```
 
----
+3. **Konfigurasi Environment (.env)**
+   - Salin file `.env.example` menjadi `.env`:
+     ```bash
+     cp .env.example .env
+     ```
+   - Buka file `.env` dan atur koneksi database Anda, misalnya:
+     ```env
+     DB_CONNECTION=mysql
+     DB_HOST=127.0.0.1
+     DB_PORT=3306
+     DB_DATABASE=lms_man1brebes
+     DB_USERNAME=root
+     DB_PASSWORD=
+     ```
+   - **PENTING UNTUK LOGO/FAVICON**: Pastikan variabel `APP_URL` di dalam file `.env` diubah sesuai alamat akses web Anda agar gambar dan logo bisa dimuat dengan benar (misal: `APP_URL=http://localhost:8000` atau `APP_URL=https://lms.sekolah.com`).
 
-## ⚙️ Cara Menjalankan Program
+4. **Generate Application Key**
+   ```bash
+   php artisan key:generate
+   ```
 
-### 1. Clone Repository
-```bash
-git clone https://github.com/sobirin105/lms_man1brebes.git
-cd lms_man1brebes
-```
+5. **Migrasi Database (Buat Tabel)**
+   ```bash
+   php artisan migrate
+   ```
+   *(Opsional)* Jika Anda memiliki file _seeder_ (data dummy), jalankan: `php artisan db:seed`.
 
-### 2. Install Dependency PHP
-```bash
-composer install
-```
+6. **Tautkan Storage (Storage Link)**
+   Agar file uploap (tugas/materi) dan beberapa aset publik bisa diakses:
+   ```bash
+   php artisan storage:link
+   ```
 
-### 3. Install Dependency JavaScript
-```bash
-npm install
-```
+7. **Compile Aset Frontend (Vue & CSS)**
+   ```bash
+   npm run build
+   ```
 
-### 4. Konfigurasi Environment
-```bash
-# Salin file .env contoh
-cp .env.example .env
-
-# Generate application key
-php artisan key:generate
-```
-
-Kemudian edit file `.env` dan sesuaikan konfigurasi database:
-```env
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=lms_man1brebes
-DB_USERNAME=root
-DB_PASSWORD=
-```
-
-### 5. Siapkan Database
-```bash
-# Buat database baru di MySQL dengan nama: lms_man1brebes
-# Kemudian jalankan migrasi dan seeder
-
-php artisan migrate
-php artisan db:seed
-```
-
-### 6. Link Storage (untuk upload file)
-```bash
-php artisan storage:link
-```
-
-### 7. Jalankan Aplikasi
-
-**Menggunakan Laragon:** Cukup letakkan folder proyek di dalam `C:\laragon\www\` dan aktifkan Laragon, lalu akses melalui `http://lms_man1brebes.test`.
-
-**Menggunakan Terminal (Manual):**
-
-Buka **dua terminal** secara bersamaan:
-
-*Terminal 1 — Jalankan Backend Laravel:*
-```bash
-php artisan serve
-```
-
-*Terminal 2 — Jalankan Frontend Vite:*
-```bash
-npm run dev
-```
-
-Kemudian buka browser dan akses: **http://localhost:8000**
+8. **Jalankan Aplikasi**
+   ```bash
+   php artisan serve
+   ```
+   Aplikasi sekarang dapat diakses melalui `http://localhost:8000`
 
 ---
 
-## 👤 Akun Default (Seeder)
+## 🌐 Panduan Optimasi Hosting (Production)
 
-Setelah menjalankan `db:seed`, akun berikut tersedia untuk login:
+Saat mengunggah ke server hosting atau CPanel, pastikan untuk menjalankan perintah optimasi ini agar aplikasi menjadi **sangat ringan dan cepat**:
 
-| Role | Email | Password |
-|------|-------|----------|
-| Admin | admin@man1brebes.sch.id | password |
-| Guru | guru@man1brebes.sch.id | password |
-| Siswa | siswa@man1brebes.sch.id | password |
+```bash
+# Optimasi Autoloader
+composer install --optimize-autoloader --no-dev
 
----
-
-## 📂 Struktur Folder Penting
-
-```
-lms_man1brebes/
-├── app/
-│   ├── Http/Controllers/Api/   # Controller API backend
-│   └── Models/                 # Model database
-├── database/
-│   ├── migrations/             # Skema tabel database
-│   └── seeders/                # Data awal database
-├── resources/
-│   ├── js/
-│   │   ├── components/         # Komponen Vue (Admin, Guru, Siswa)
-│   │   └── router/             # Konfigurasi routing Vue
-│   └── css/                    # File styling
-├── routes/
-│   └── api.php                 # Definisi route API
-└── public/                     # Asset publik & entry point
+# Cache Konfigurasi & Rute
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
 ```
 
----
-
-## 📄 Lisensi
-
-Proyek ini dikembangkan untuk keperluan internal **MAN 1 Brebes**. Hak cipta dilindungi.
+Jika terjadi masalah pada logo atau gambar yang hilang di server, periksa kembali file `.env` pada variabel `APP_URL` dan pastikan perintah `php artisan storage:link` telah berhasil dijalankan.
 
 ---
-
-<p align="center">Dikembangkan dengan ❤️ untuk MAN 1 Brebes</p>
+**Hak Cipta © 2026 - MAN 1 Brebes**

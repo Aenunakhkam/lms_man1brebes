@@ -7,15 +7,6 @@
         
         <title>LMS MAN 1 Brebes</title>
         
-        <!-- PWA Meta Tags -->
-        <meta name="theme-color" content="#10b981">
-        <meta name="apple-mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-        <meta name="apple-mobile-web-app-title" content="LMS MAN 1 Brebes">
-        
-        <!-- PWA Manifest -->
-        <link rel="manifest" href="{{ asset('manifest.json') }}">
-        
         <!-- Icons -->
         <link rel="icon" type="image/png" sizes="192x192" href="{{ asset('images/icon-192x192.png') }}">
         <link rel="icon" type="image/png" sizes="512x512" href="{{ asset('images/icon-512x512.png') }}">
@@ -43,15 +34,13 @@
         <div id="app"></div>
         
         <script>
+            // Unregister any existing Service Workers to clear PWA cache
             if ('serviceWorker' in navigator) {
-                window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('{{ asset("service-worker.js") }}')
-                        .then(registration => {
-                            console.log('Service Worker registered successfully:', registration);
-                        })
-                        .catch(error => {
-                            console.log('Service Worker registration failed:', error);
-                        });
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    for(let registration of registrations) {
+                        registration.unregister();
+                        console.log('Service Worker unregistered successfully');
+                    }
                 });
             }
         </script>

@@ -184,12 +184,45 @@
             </v-menu>
 
             <!-- Notifications -->
-            <v-btn icon variant="text" class="mr-2">
-                <v-badge color="error" content="3" dot>
-                    <v-icon>mdi-bell-outline</v-icon>
-                </v-badge>
-            </v-btn>
-
+            <v-menu min-width="300px" max-height="400px" rounded="lg">
+                <template v-slot:activator="{ props }">
+                    <v-btn icon variant="text" class="mr-2" v-bind="props">
+                        <v-badge color="error" :content="unreadCount" :model-value="unreadCount > 0" dot>
+                            <v-icon>mdi-bell-outline</v-icon>
+                        </v-badge>
+                    </v-btn>
+                </template>
+                <v-card>
+                    <v-card-title class="text-subtitle-1 px-4 py-2 bg-primary text-white d-flex justify-space-between align-center">
+                        Notifikasi
+                        <v-btn v-if="unreadCount > 0" size="x-small" variant="text" @click="markAllNotificationsAsRead">
+                            Tandai semua dibaca
+                        </v-btn>
+                    </v-card-title>
+                    <v-list lines="two" v-if="notifications.length > 0">
+                        <v-list-item
+                            v-for="notif in notifications"
+                            :key="notif.id"
+                            :prepend-icon="'mdi-bell'"
+                            :title="notif.title"
+                            :subtitle="notif.message"
+                            :class="{'bg-blue-grey-lighten-5': !notif.is_read}"
+                            @click="markNotificationAsRead(notif)"
+                        >
+                            <template v-slot:append>
+                                <v-icon v-if="!notif.is_read" color="primary" size="small">mdi-circle</v-icon>
+                            </template>
+                        </v-list-item>
+                    </v-list>
+                    <v-list lines="two" v-else>
+                        <v-list-item
+                            prepend-icon="mdi-information"
+                            title="Belum ada notifikasi"
+                            subtitle="Anda tidak memiliki notifikasi baru."
+                        ></v-list-item>
+                    </v-list>
+                </v-card>
+            </v-menu>
             <!-- Profile Dropdown -->
             <v-menu min-width="200px" rounded="lg">
                 <template v-slot:activator="{ props }">
@@ -206,7 +239,7 @@
                             </div>
                             <v-avatar size="36" color="primary">
                                 <v-img v-if="user?.photo" :src="Laravel.assetUrl + 'storage/' + user.photo" cover></v-img>
-                                <v-icon v-else color="white">mdi-account</v-icon>
+                                <span v-else class="font-weight-bold" style="color: white !important; font-size: 1.2rem;">{{ user?.name ? String(user.name).charAt(0).toUpperCase() : 'S' }}</span>
                             </v-avatar>
                         </div>
                     </v-btn>
@@ -272,6 +305,8 @@ const bottomNav = ref('dashboard');
 const user = ref(null);
 const announcements = ref([]);
 const appSettings = ref({});
+const notifications = ref([]);
+const unreadCount = ref(0);
 
 const currentThemeIcon = computed(() => {
     return theme.global.name.value === 'dark' ? 'mdi-moon-waning-crescent' : 'mdi-white-balance-sunny';
@@ -284,7 +319,7 @@ const setTheme = (val) => {
 
 const fetchSettings = async () => {
     try {
-        const response = await axios.get('api/settings');
+        const response = await axios.get('/api/settings');
         if (response.data.success) {
             appSettings.value = response.data.data;
         }
@@ -295,12 +330,47 @@ const fetchSettings = async () => {
 
 const fetchAnnouncements = async () => {
     try {
-        const response = await axios.get('api/announcements');
+        const response = await axios.get('/api/announcements');
         if (response.data.success) {
             announcements.value = response.data.data;
         }
     } catch (error) {
         console.error('Error fetching announcements:', error);
+    }
+};
+
+const fetchNotifications = async () => {
+    try {
+        const response = await axios.get('/api/notifications');
+        notifications.value = response.data.notifications;
+        unreadCount.value = response.data.unread_count;
+    } catch (error) {
+        console.error('Error fetching notifications:', error);
+    }
+};
+
+const markNotificationAsRead = async (notif) => {
+    if (notif.is_read) return;
+    try {
+        await axios.post(`/api/notifications/${notif.id}/mark-as-read`);
+        notif.is_read = true;
+        unreadCount.value = Math.max(0, unreadCount.value - 1);
+        
+        // Optional: redirect to link
+        if (notif.link) {
+            router.push(notif.link);
+        }
+    } catch (error) {
+        console.error('Error marking notification as read:', error);
+    }
+};
+
+const markAllNotificationsAsRead = async () => {
+    try {
+        await axios.post('/api/notifications/mark-all-as-read');
+        fetchNotifications();
+    } catch (error) {
+        console.error('Error marking all notifications as read:', error);
     }
 };
 
@@ -316,6 +386,7 @@ const formatDate = (dateString) => {
 onMounted(() => {
     fetchSettings();
     fetchAnnouncements();
+    fetchNotifications();
     const userData = localStorage.getItem('user');
     if (userData) {
         user.value = JSON.parse(userData);
@@ -330,7 +401,7 @@ onMounted(() => {
 
 const logout = async () => {
     try {
-        await axios.post('api/logout');
+        await axios.post('/api/logout');
     } catch (error) {
         console.error('Logout error:', error);
     } finally {

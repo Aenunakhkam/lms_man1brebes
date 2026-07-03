@@ -185,7 +185,7 @@ const loading = ref(true);
 
 const fetchStats = async () => {
     try {
-        const response = await axios.get('api/admin/dashboard-stats');
+        const response = await axios.get('/api/admin/dashboard-stats');
         if (response.data.success) {
             stats.value = response.data.data;
         }

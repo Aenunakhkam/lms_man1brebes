@@ -22,7 +22,8 @@
                                 <div class="text-subtitle-1 mb-3">Logo Sekolah</div>
                                 <div class="position-relative d-inline-block mb-4">
                                     <v-avatar size="150" color="grey-lighten-4" rounded="lg" class="elevation-1 border">
-                                        <v-img v-if="settings.school_logo" :src="Laravel.assetUrl + 'storage/' + settings.school_logo" contain></v-img>
+                                        <v-img v-if="logoPreview" :src="logoPreview" contain></v-img>
+                                        <v-img v-else-if="settings.school_logo" :src="Laravel.assetUrl + 'storage/' + settings.school_logo" contain></v-img>
                                         <v-icon v-else size="80" color="grey">mdi-image-plus</v-icon>
                                     </v-avatar>
                                     <v-btn
@@ -133,6 +134,7 @@ const { showSuccess, showError } = useAlert();
 const loading = ref(false);
 const logoInput = ref(null);
 const logoFile = ref(null);
+const logoPreview = ref(null);
 
 const settings = ref({
     school_name: '',
@@ -147,7 +149,7 @@ const settings = ref({
 
 const loadSettings = async () => {
     try {
-        const response = await axios.get('api/admin/settings');
+        const response = await axios.get('/api/admin/settings');
         if (response.data.success) {
             settings.value = response.data.data;
         }
@@ -162,7 +164,7 @@ const onLogoSelected = (event) => {
         // Create preview
         const reader = new FileReader();
         reader.onload = (e) => {
-            // This is just for UI preview, saving will use FormData
+            logoPreview.value = e.target.result;
         };
         reader.readAsDataURL(logoFile.value);
     }
@@ -170,9 +172,10 @@ const onLogoSelected = (event) => {
 
 const removeLogo = async () => {
     try {
-        await axios.delete('api/admin/settings/logo');
+        await axios.delete('/api/admin/settings/logo');
         settings.value.school_logo = null;
         logoFile.value = null;
+        logoPreview.value = null;
         showSuccess('Berhasil!', 'Logo berhasil dihapus');
     } catch (error) {
         showError('Gagal menghapus logo');
@@ -193,13 +196,14 @@ const saveSettings = async () => {
             formData.append('school_logo', logoFile.value);
         }
 
-        const response = await axios.post('api/admin/settings', formData, {
+        const response = await axios.post('/api/admin/settings', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
 
         showSuccess('Berhasil!', response.data.message);
         settings.value = response.data.data;
         logoFile.value = null;
+        logoPreview.value = null;
     } catch (error) {
         showError(error.response?.data?.message || 'Gagal menyimpan pengaturan');
     } finally {

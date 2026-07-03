@@ -110,7 +110,7 @@ const startingQuizId = ref(null);
 const fetchQuizzes = async () => {
     try {
         loading.value = true;
-        const response = await axios.get('api/siswa/cbt');
+        const response = await axios.get('/api/siswa/cbt');
         if (response.data.success) {
             quizzes.value = response.data.data;
         }

@@ -216,7 +216,7 @@ const stats = ref({
 const fetchDashboardStats = async () => {
     try {
         loadingStats.value = true;
-        const response = await axios.get('api/siswa/dashboard-stats');
+        const response = await axios.get('/api/siswa/dashboard-stats');
         if (response.data.success) {
             stats.value = response.data.data;
         }
@@ -230,7 +230,7 @@ const fetchDashboardStats = async () => {
 const fetchAnnouncements = async () => {
     try {
         loadingAnnouncements.value = true;
-        const response = await axios.get('api/announcements');
+        const response = await axios.get('/api/announcements');
         if (response.data.success) {
             announcements.value = response.data.data;
         }

@@ -303,7 +303,7 @@ const Laravel = window.Laravel;
 
 const fetchSettings = async () => {
     try {
-        const response = await axios.get('api/settings');
+        const response = await axios.get('/api/settings');
         if (response.data.success) {
             appSettings.value = response.data.data;
         }
@@ -328,7 +328,7 @@ const contactInfo = [
 onMounted(async () => {
     fetchSettings();
     try {
-        const response = await axios.get('api/public-stats');
+        const response = await axios.get('/api/public-stats');
         if (response.data.success) {
             const data = response.data.data;
             statistics.value[0].value = data.students;

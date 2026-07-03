@@ -134,6 +134,7 @@
                                         <th class="text-left">NAMA SISWA</th>
                                         <th class="text-center" style="width: 140px;">NILAI (0-100)</th>
                                         <th class="text-left">CATATAN</th>
+                                        <th class="text-center" style="width: 120px;">AKSI</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -174,9 +175,36 @@
                                                 rounded="lg"
                                             ></v-text-field>
                                         </td>
+                                        <td class="text-center">
+                                            <!-- Tampil jika nilai sudah ada (ada gradeIdMap) -->
+                                            <template v-if="gradeIdMap[student.id]">
+                                                <v-btn
+                                                    icon
+                                                    color="info"
+                                                    variant="text"
+                                                    size="small"
+                                                    @click="openEditDialog(student)"
+                                                >
+                                                    <v-icon>mdi-pencil</v-icon>
+                                                    <v-tooltip activator="parent" location="top">Edit Nilai</v-tooltip>
+                                                </v-btn>
+                                                <v-btn
+                                                    icon
+                                                    color="error"
+                                                    variant="text"
+                                                    size="small"
+                                                    @click="confirmDeleteSingleGrade(student)"
+                                                >
+                                                    <v-icon>mdi-delete</v-icon>
+                                                    <v-tooltip activator="parent" location="top">Hapus Nilai</v-tooltip>
+                                                </v-btn>
+                                            </template>
+                                            <span v-else class="text-caption text-grey">Belum ada</span>
+                                        </td>
                                     </tr>
                                 </tbody>
                             </v-table>
+
                         </v-card>
                         <v-card v-else rounded="xl" class="pa-12 text-center text-grey border-dashed" elevation="0">
                             <v-icon size="80" color="grey-lighten-2" class="mb-4">mdi-clipboard-edit-outline</v-icon>
@@ -294,8 +322,49 @@
             </v-window-item>
         </v-window>
 
-        <!-- Dialog Konfirmasi Hapus -->
-        <v-dialog v-model="deleteDialog" width="400">
+    <!-- Dialog Edit Nilai Siswa -->
+    <v-dialog v-model="editDialog" max-width="420px" persistent>
+        <v-card rounded="xl">
+            <v-card-title class="pa-6 d-flex justify-space-between align-center">
+                <span class="text-h6 font-weight-bold">Edit Nilai Siswa</span>
+                <v-btn icon variant="text" @click="editDialog = false"><v-icon>mdi-close</v-icon></v-btn>
+            </v-card-title>
+            <v-divider></v-divider>
+            <v-card-text class="pa-6" v-if="editTarget">
+                <div class="mb-4">
+                    <div class="text-subtitle-2 text-grey">Siswa:</div>
+                    <div class="font-weight-bold">{{ editTarget.name }}</div>
+                </div>
+                <v-text-field
+                    v-model.number="editForm.score"
+                    label="Nilai (0–100)"
+                    type="number"
+                    min="0"
+                    max="100"
+                    variant="outlined"
+                    rounded="lg"
+                    class="mb-3"
+                    :rules="[v => v >= 0 && v <= 100 || 'Nilai 0-100']"
+                ></v-text-field>
+                <v-textarea
+                    v-model="editForm.notes"
+                    label="Catatan (opsional)"
+                    variant="outlined"
+                    rounded="lg"
+                    rows="2"
+                    hide-details
+                ></v-textarea>
+            </v-card-text>
+            <v-card-actions class="pa-6 pt-0">
+                <v-spacer></v-spacer>
+                <v-btn variant="text" rounded="lg" @click="editDialog = false">Batal</v-btn>
+                <v-btn color="info" variant="flat" rounded="lg" :loading="editSaving" @click="saveEditGrade">Simpan Perubahan</v-btn>
+            </v-card-actions>
+        </v-card>
+    </v-dialog>
+
+    <!-- Dialog Hapus Semua -->
+        <v-dialog v-model="deleteDialog" max-width="400" persistent>
             <v-card rounded="xl" class="pa-6">
                 <div class="text-center mb-4">
                     <v-avatar color="error-lighten-4" size="64">
@@ -306,21 +375,20 @@
                 <p class="text-center text-grey mb-6">
                     Tindakan ini akan menghapus semua nilai siswa pada kategori <strong>{{ filters.category }}</strong>. Tindakan ini tidak dapat dibatalkan.
                 </p>
-                <div class="d-flex gap-4">
+                <div class="d-flex gap-4 w-100">
                     <v-btn
                         variant="tonal"
-                        block
                         rounded="lg"
                         @click="deleteDialog = false"
-                        class="mr-2"
+                        class="flex-grow-1"
                     >Batal</v-btn>
                     <v-btn
                         color="error"
-                        block
                         rounded="lg"
                         variant="flat"
                         @click="deleteGrades"
                         :loading="deleting"
+                        class="flex-grow-1"
                     >Ya, Hapus</v-btn>
                 </div>
             </v-card>
@@ -336,6 +404,8 @@
 const Laravel = window.Laravel;
 import { ref, onMounted, computed } from 'vue';
 import axios from 'axios';
+import { useAlert } from '../../../composables/useAlert';
+const { showSuccess, showError, showConfirm } = useAlert();
 
 const activeTab = ref('input');
 const classes = ref([]);
@@ -358,6 +428,11 @@ const saving = ref(false);
 const deleting = ref(false);
 const filterValid = ref(false);
 const deleteDialog = ref(false);
+const editDialog = ref(false);
+const editSaving = ref(false);
+const editTarget = ref(null);
+const editForm = ref({ score: 0, notes: '' });
+const gradeIdMap = ref({}); // map: student_id -> grade id
 
 const recapData = ref({
     students: [],
@@ -378,7 +453,7 @@ const showSnackbar = (message, color = 'success') => {
 
 const fetchClasses = async () => {
     try {
-        const response = await axios.get('api/guru/classes');
+        const response = await axios.get('/api/guru/classes');
         classes.value = response.data.data;
     } catch (error) {
         console.error('Error fetching classes:', error);
@@ -387,7 +462,7 @@ const fetchClasses = async () => {
 
 const fetchSubjects = async () => {
     try {
-        const response = await axios.get('api/guru/subjects');
+        const response = await axios.get('/api/guru/subjects');
         subjects.value = response.data.data;
     } catch (error) {
         console.error('Error fetching subjects:', error);
@@ -413,13 +488,15 @@ const fetchStudents = async () => {
 
 const loadGrades = async () => {
     loading.value = true;
+    gradeIdMap.value = {};
     await fetchStudents();
     try {
-        const response = await axios.get('api/guru/grades', { params: filters.value });
+        const response = await axios.get('/api/guru/grades', { params: filters.value });
         if (response.data.success && response.data.data.length) {
             response.data.data.forEach(item => {
                 gradeData.value[item.student_id] = item.score;
                 noteData.value[item.student_id] = item.notes;
+                gradeIdMap.value[item.student_id] = item.id; // simpan ID grade per siswa
             });
             showSnackbar('Data nilai ditemukan dan dimuat');
         } else {
@@ -451,7 +528,7 @@ const saveGrades = async () => {
                     note: noteData.value[studentId] || ''
                 }))
         };
-        const response = await axios.post('api/guru/grades', payload);
+        const response = await axios.post('/api/guru/grades', payload);
         if (response.data.success) {
             if (!categories.value.includes(filters.value.category)) {
                 categories.value.push(filters.value.category);
@@ -474,7 +551,7 @@ const confirmDeleteGrade = () => {
 const deleteGrades = async () => {
     deleting.value = true;
     try {
-        const response = await axios.delete('api/guru/grades', { data: filters.value });
+        const response = await axios.delete('/api/guru/grades', { data: filters.value });
         if (response.data.success) {
             showSnackbar(response.data.message);
             deleteDialog.value = false;
@@ -488,11 +565,58 @@ const deleteGrades = async () => {
     }
 };
 
+// Edit & Delete Per Siswa
+const openEditDialog = (student) => {
+    editTarget.value = student;
+    editForm.value = {
+        score: gradeData.value[student.id] ?? 0,
+        notes: noteData.value[student.id] ?? ''
+    };
+    editDialog.value = true;
+};
+
+const saveEditGrade = async () => {
+    const gradeId = gradeIdMap.value[editTarget.value.id];
+    if (!gradeId) return;
+    editSaving.value = true;
+    try {
+        const response = await axios.put(`/api/guru/grades/${gradeId}`, editForm.value);
+        if (response.data.success) {
+            showSuccess(response.data.message);
+            editDialog.value = false;
+            loadGrades();
+        }
+    } catch (error) {
+        showError('Gagal memperbarui nilai');
+    } finally {
+        editSaving.value = false;
+    }
+};
+
+const confirmDeleteSingleGrade = async (student) => {
+    const gradeId = gradeIdMap.value[student.id];
+    if (!gradeId) return;
+    const confirmed = await showConfirm(
+        `Hapus nilai ${student.name}?`,
+        'Nilai siswa ini akan dihapus secara permanen dari kategori ini.'
+    );
+    if (!confirmed) return;
+    try {
+        const response = await axios.delete(`/api/guru/grades/${gradeId}`);
+        if (response.data.success) {
+            showSuccess(response.data.message);
+            loadGrades();
+        }
+    } catch (error) {
+        showError('Gagal menghapus nilai siswa');
+    }
+};
+
 // Functions for Recap
 const loadRecap = async () => {
     loadingRecap.value = true;
     try {
-        const response = await axios.get('api/guru/grades/summary', { params: recapFilters.value });
+        const response = await axios.get('/api/guru/grades/summary', { params: recapFilters.value });
         if (response.data.success) {
             recapData.value = response.data.data;
         }

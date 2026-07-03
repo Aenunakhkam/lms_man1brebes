@@ -257,6 +257,9 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue';
 import axios from 'axios';
+
+const user = JSON.parse(localStorage.getItem('user') || '{}');
+const apiPrefix = (user.role === 'guru' || (user.role && user.role.name === 'guru')) ? '/api/guru' : '/api/admin';
 import { useAlert } from '../../../composables/useAlert';
 
 const props = defineProps({
@@ -441,7 +444,7 @@ const loadQuestions = async () => {
     if (!props.quiz?.id) return;
     loading.value = true;
     try {
-        const response = await axios.get(`api/admin/quizzes/${props.quiz.id}/questions`);
+        const response = await axios.get(`${apiPrefix}/quizzes/${props.quiz.id}/questions`);
         questions.value = response.data.data;
     } catch (error) {
         if (error.response && error.response.status === 404) {
@@ -483,12 +486,12 @@ const saveQuestion = async () => {
         // Laravel PUT doesn't support FormData out of the box, use POST with _method spoofing
         if (isEditing.value) {
             formData.append('_method', 'PUT');
-            await axios.post(`api/admin/quizzes/${props.quiz.id}/questions/${editingId.value}`, formData, {
+            await axios.post(`${apiPrefix}/quizzes/${props.quiz.id}/questions/${editingId.value}`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             showSuccess('Sinkronisasi Berhasil', 'Soal diperbarui di database.');
         } else {
-            await axios.post(`api/admin/quizzes/${props.quiz.id}/questions`, formData, {
+            await axios.post(`${apiPrefix}/quizzes/${props.quiz.id}/questions`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             showSuccess('Berhasil Disimpan', 'Soal baru telah masuk kedalam sistem.');
@@ -514,7 +517,7 @@ const deleteQuestion = async (q) => {
     if (confirmed) {
         saving.value = true;
         try {
-            await axios.delete(`api/admin/quizzes/${props.quiz.id}/questions/${q.id}`);
+            await axios.delete(`${apiPrefix}/quizzes/${props.quiz.id}/questions/${q.id}`);
             await loadQuestions();
             showSuccess('Data Terhapus', 'Soal berhasil dibersihkan.');
         } catch (error) {

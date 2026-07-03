@@ -26,17 +26,10 @@ class ClassController extends Controller
             'department_id' => 'required|exists:departments,id',
         ]);
 
-        // Default academic_year_id if not provided (should be handled by a global setting/current year)
-        // For now, if your table requires it, we might need to find the active one
-        // or ensure it's nullable in the database if not always used.
-        // Assuming there might be a default or it's handled.
-        // If it's required, we should fetch the most recent one.
-        $recentYear = \DB::table('academic_years')->orderBy('id', 'desc')->first();
-        if ($recentYear) {
-            $validated['academic_year_id'] = $recentYear->id;
-        }
+
 
         $class = Classes::create($validated);
+        $class->load('department');
 
         return response()->json([
             'success' => true,
@@ -66,6 +59,7 @@ class ClassController extends Controller
         ]);
 
         $class->update($validated);
+        $class->load('department');
 
         return response()->json([
             'success' => true,

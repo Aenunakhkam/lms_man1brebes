@@ -119,7 +119,7 @@ const filterValid = ref(false);
 
 const fetchClasses = async () => {
     try {
-        const response = await axios.get('api/guru/classes');
+        const response = await axios.get('/api/guru/classes');
         classes.value = response.data.data;
     } catch (error) {
         console.error('Error fetching classes:', error);
@@ -130,7 +130,7 @@ const fetchStudents = async () => {
     if (!filters.value.class_id) return;
     loading.value = true;
     try {
-        const response = await axios.get('api/guru/attendance/students', {
+        const response = await axios.get('/api/guru/attendance/students', {
             params: { class_id: filters.value.class_id }
         });
         students.value = response.data.data;
@@ -150,7 +150,7 @@ const fetchStudents = async () => {
 const loadAttendance = async () => {
     await fetchStudents();
     try {
-        const response = await axios.get('api/guru/attendance', { params: filters.value });
+        const response = await axios.get('/api/guru/attendance', { params: filters.value });
         if (response.data.success && response.data.data.length) {
             response.data.data.forEach(item => {
                 attendanceData.value[item.student_id] = item.status;
@@ -172,7 +172,7 @@ const saveAttendance = async () => {
                 status: attendanceData.value[studentId]
             }))
         };
-        const response = await axios.post('api/guru/attendance', payload);
+        const response = await axios.post('/api/guru/attendance', payload);
         if (response.data.success) {
             alert('Presensi berhasil disimpan!');
         }

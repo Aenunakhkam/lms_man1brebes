@@ -29,15 +29,31 @@
                 </template>
                 <template v-slot:item.file_path="{ item }">
                     <v-btn
+                        v-if="item.file_path"
                         variant="text"
                         color="primary"
                         prepend-icon="mdi-download"
                         size="small"
-                        :href="item.file_path"
+                        :href="`/storage/${item.file_path}`"
                         target="_blank"
                     >
-                        Unduh File
+                        File
                     </v-btn>
+                    <span v-else class="text-grey text-caption">Tidak ada</span>
+                </template>
+                <template v-slot:item.link="{ item }">
+                    <v-btn
+                        v-if="item.link"
+                        variant="text"
+                        color="info"
+                        prepend-icon="mdi-link"
+                        size="small"
+                        :href="item.link"
+                        target="_blank"
+                    >
+                        Buka
+                    </v-btn>
+                    <span v-else class="text-grey text-caption">Tidak ada</span>
                 </template>
                 <template v-slot:item.actions="{ item }">
                     <v-btn icon color="info" variant="text" size="small" @click="openDialog(item)">
@@ -112,9 +128,37 @@
                             class="mb-4"
                         ></v-textarea>
 
+                        <v-text-field
+                            v-model="editedItem.link"
+                            label="Link Materi (Google Drive, YouTube, dll) - Opsional"
+                            placeholder="Contoh: https://drive.google.com/..."
+                            variant="outlined"
+                            rounded="lg"
+                            class="mb-4"
+                        ></v-text-field>
+
+                        <!-- File Saat Ini -->
+                        <v-card v-if="editedItem.file_path && !editedItem.remove_file" variant="outlined" rounded="lg" class="mb-4 pa-3 d-flex align-center justify-space-between bg-grey-lighten-4 border-primary">
+                            <div class="d-flex align-center">
+                                <v-icon color="primary" class="mr-3">mdi-file-document-outline</v-icon>
+                                <div>
+                                    <div class="text-caption text-grey">File saat ini</div>
+                                    <div class="text-body-2 font-weight-medium text-truncate" style="max-width: 300px;">
+                                        {{ editedItem.file_path.split('/').pop() }}
+                                    </div>
+                                </div>
+                            </div>
+                            <v-tooltip text="Hapus File Ini">
+                                <template v-slot:activator="{ props }">
+                                    <v-btn v-bind="props" icon="mdi-close" variant="tonal" size="small" color="error" @click="editedItem.remove_file = true"></v-btn>
+                                </template>
+                            </v-tooltip>
+                        </v-card>
+
                         <v-file-input
+                            v-show="!editedItem.file_path || editedItem.remove_file"
                             v-model="editedItem.file"
-                            label="Upload File Materi"
+                            :label="editedItem.file_path ? 'Upload File Pengganti' : 'Upload File Materi'"
                             variant="outlined"
                             rounded="lg"
                             prepend-icon="mdi-paperclip"
@@ -136,6 +180,9 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
+import { useAlert } from '../../../composables/useAlert';
+
+const { showSuccess, showError, showConfirm } = useAlert();
 
 const materials = ref([]);
 const classes = ref([]);
@@ -152,6 +199,9 @@ const editedItem = ref({
     class_id: null,
     subject_id: null,
     description: '',
+    link: null,
+    file_path: null,
+    remove_file: false,
     file: null
 });
 
@@ -161,6 +211,9 @@ const defaultItem = {
     class_id: null,
     subject_id: null,
     description: '',
+    link: null,
+    file_path: null,
+    remove_file: false,
     file: null
 };
 
@@ -170,13 +223,14 @@ const headers = [
     { title: 'Kelas', key: 'class.name' },
     { title: 'Mapel', key: 'subject.name' },
     { title: 'File', key: 'file_path', sortable: false },
+    { title: 'Link (Tautan)', key: 'link', sortable: false },
     { title: 'Aksi', key: 'actions', sortable: false, align: 'end' },
 ];
 
 const fetchMaterials = async () => {
     loading.value = true;
     try {
-        const response = await axios.get('api/guru/materials');
+        const response = await axios.get('/api/guru/materials');
         if (response.data.success) {
             materials.value = response.data.data;
         }
@@ -190,8 +244,8 @@ const fetchMaterials = async () => {
 const fetchInitialData = async () => {
     try {
         const [classRes, subjectRes] = await Promise.all([
-            axios.get('api/guru/classes'),
-            axios.get('api/guru/subjects')
+            axios.get('/api/guru/classes'),
+            axios.get('/api/guru/subjects')
         ]);
         classes.value = classRes.data.data;
         subjects.value = subjectRes.data.data;
@@ -220,14 +274,23 @@ const save = async () => {
     try {
         const formData = new FormData();
         Object.keys(editedItem.value).forEach(key => {
-            if (editedItem.value[key] !== null) {
+            if (key === 'file') {
+                if (editedItem.value[key]) {
+                    // Handle Vuetify 3 file array
+                    if (Array.isArray(editedItem.value[key]) && editedItem.value[key].length > 0) {
+                        formData.append(key, editedItem.value[key][0]);
+                    } else if (!Array.isArray(editedItem.value[key])) {
+                        formData.append(key, editedItem.value[key]);
+                    }
+                }
+            } else if (editedItem.value[key] !== null && editedItem.value[key] !== undefined) {
                 formData.append(key, editedItem.value[key]);
             }
         });
 
         const url = editedItem.value.id 
             ? `/api/guru/materials/${editedItem.value.id}` 
-            : 'api/guru/materials';
+            : '/api/guru/materials';
         
         const response = await axios({
             method: 'post', // Usually post even for update when dealing with FormData/Files
@@ -239,21 +302,28 @@ const save = async () => {
         if (response.data.success) {
             fetchMaterials();
             closeDialog();
+            showSuccess('Berhasil Disimpan', response.data.message || 'Materi berhasil ditambahkan');
         }
     } catch (error) {
         console.error('Error saving material:', error);
+        showError('Gagal Menyimpan', 'Terjadi kesalahan saat menyimpan materi');
     } finally {
         saving.value = false;
     }
 };
 
 const confirmDelete = async (item) => {
-    if (confirm('Apakah Anda yakin ingin menghapus materi ini?')) {
+    const confirmed = await showConfirm('Apakah Anda yakin ingin menghapus materi ini?');
+    if (confirmed) {
         try {
-            await axios.delete(`/api/guru/materials/${item.id}`);
-            fetchMaterials();
+            const response = await axios.delete(`/api/guru/materials/${item.id}`);
+            if (response.data.success) {
+                showSuccess('Berhasil Dihapus', 'Materi telah dihapus');
+                fetchMaterials();
+            }
         } catch (error) {
             console.error('Error deleting material:', error);
+            showError('Gagal Menghapus', 'Terjadi kesalahan saat menghapus materi');
         }
     }
 };

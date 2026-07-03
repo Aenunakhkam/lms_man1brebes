@@ -113,7 +113,7 @@ const headers = [
 const fetchAttendance = async () => {
     loading.value = true;
     try {
-        const response = await axios.get('api/siswa/attendance');
+        const response = await axios.get('/api/siswa/attendance');
         if (response.data.success) {
             attendance.value = response.data.data;
             summary.value = response.data.summary;

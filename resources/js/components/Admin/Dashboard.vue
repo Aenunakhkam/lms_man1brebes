@@ -120,7 +120,7 @@
 
                     <v-list-item
                         prepend-icon="mdi-file-percent"
-                        title="Rekap Nilai"
+                        title="Ekspor Nilai"
                         to="/admin/grades"
                         rounded="lg"
                         class="mb-1"
@@ -129,7 +129,7 @@
 
                     <v-list-item
                         prepend-icon="mdi-calendar-check"
-                        title="Presensi & Absensi"
+                        title="Presensi"
                         to="/admin/attendance"
                         rounded="lg"
                         class="mb-4"
@@ -194,11 +194,27 @@
             </v-menu>
 
             <!-- Notifications -->
-            <v-btn icon variant="text" class="mr-2">
-                <v-badge color="error" content="3" dot>
-                    <v-icon>mdi-bell-outline</v-icon>
-                </v-badge>
-            </v-btn>
+            <v-menu min-width="300px" rounded="lg">
+                <template v-slot:activator="{ props }">
+                    <v-btn icon variant="text" class="mr-2" v-bind="props">
+                        <v-badge color="error" content="3" dot>
+                            <v-icon>mdi-bell-outline</v-icon>
+                        </v-badge>
+                    </v-btn>
+                </template>
+                <v-card>
+                    <v-card-title class="text-subtitle-1 px-4 py-2 bg-primary text-white">
+                        Notifikasi
+                    </v-card-title>
+                    <v-list lines="two">
+                        <v-list-item
+                            prepend-icon="mdi-information"
+                            title="Selamat Datang"
+                            subtitle="Selamat datang di LMS MAN 1 Brebes. Belum ada notifikasi baru."
+                        ></v-list-item>
+                    </v-list>
+                </v-card>
+            </v-menu>
 
             <!-- Profile Dropdown -->
             <v-menu min-width="200px" rounded="lg">
@@ -216,7 +232,7 @@
                             </div>
                             <v-avatar size="36" color="primary">
                                 <v-img v-if="user?.photo" :src="Laravel.assetUrl + 'storage/' + user.photo" cover></v-img>
-                                <v-icon v-else color="white">mdi-account</v-icon>
+                                <span v-else class="font-weight-bold" style="color: white !important; font-size: 1.2rem;">{{ user?.name ? String(user.name).charAt(0).toUpperCase() : 'A' }}</span>
                             </v-avatar>
                         </div>
                     </v-btn>
@@ -290,7 +306,7 @@ const setTheme = (val) => {
 
 const fetchSettings = async () => {
     try {
-        const response = await axios.get('api/settings');
+        const response = await axios.get('/api/settings');
         if (response.data.success) {
             appSettings.value = response.data.data;
         }
@@ -315,7 +331,7 @@ onMounted(() => {
 
 const logout = async () => {
     try {
-        await axios.post('api/logout');
+        await axios.post('/api/logout');
     } catch (error) {
         console.error('Logout error:', error);
     } finally {

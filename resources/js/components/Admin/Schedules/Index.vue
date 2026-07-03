@@ -209,7 +209,7 @@ const formTitle = computed(() => {
 const loadSchedules = async () => {
     loading.value = true;
     try {
-        const response = await axios.get('api/admin/schedules');
+        const response = await axios.get('/api/admin/schedules');
         if (response.data.success) {
             schedules.value = response.data.data;
         }
@@ -223,9 +223,9 @@ const loadSchedules = async () => {
 const loadDependencies = async () => {
     try {
         const [classesRes, subjectsRes, teachersRes] = await Promise.all([
-            axios.get('api/admin/classes'),
-            axios.get('api/admin/subjects'),
-            axios.get('api/admin/users?role=guru')
+            axios.get('/api/admin/classes'),
+            axios.get('/api/admin/subjects'),
+            axios.get('/api/admin/users?role=guru')
         ]);
         
         if (classesRes.data.success) classes.value = classesRes.data.data;
@@ -294,7 +294,7 @@ const save = async () => {
             Object.assign(schedules.value[editedIndex.value], response.data.data);
             showSuccess('Jadwal berhasil diperbarui');
         } else {
-            const response = await axios.post('api/admin/schedules', editedItem.value);
+            const response = await axios.post('/api/admin/schedules', editedItem.value);
             schedules.value.push(response.data.data);
             showSuccess('Jadwal berhasil ditambahkan');
         }

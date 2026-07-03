@@ -201,7 +201,7 @@ const formTitle = computed(() => {
 const loadClasses = async () => {
     loading.value = true;
     try {
-        const response = await axios.get('api/admin/classes');
+        const response = await axios.get('/api/admin/classes');
         if (response.data.success) {
             classes.value = response.data.data;
         }
@@ -214,7 +214,7 @@ const loadClasses = async () => {
 
 const loadDepartments = async () => {
     try {
-        const response = await axios.get('api/admin/departments');
+        const response = await axios.get('/api/admin/departments');
         if (response.data.success) {
             departments.value = response.data.data;
         }
@@ -267,7 +267,7 @@ const save = async () => {
             Object.assign(classes.value[editedIndex.value], response.data.data);
             showSuccess('Kelas berhasil diperbarui');
         } else {
-            const response = await axios.post('api/admin/classes', editedItem.value);
+            const response = await axios.post('/api/admin/classes', editedItem.value);
             classes.value.push(response.data.data);
             showSuccess('Kelas berhasil ditambahkan');
         }
@@ -315,7 +315,7 @@ const loadAvailableStudents = async () => {
     loadingStudents.value = true;
     try {
          // Assuming we want all students to pick from. Ideally this endpoint should filter out those already in a class if logic requires.
-        const response = await axios.get('api/admin/users?role=siswa');
+        const response = await axios.get('/api/admin/users?role=siswa');
         if (response.data.success) {
             availableStudents.value = response.data.data;
         }
