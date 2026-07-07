@@ -95,7 +95,10 @@ php artisan route:cache
 php artisan view:cache
 ```
 
-Jika terjadi masalah pada logo atau gambar yang hilang di server, periksa kembali file `.env` pada variabel `APP_URL` dan pastikan perintah `php artisan storage:link` telah berhasil dijalankan.
+Jika terjadi masalah pada logo atau gambar yang hilang di server/perangkat baru, lakukan langkah berikut:
+1. Periksa kembali file `.env` pada variabel `APP_URL` dan pastikan sesuai dengan URL yang digunakan (misal: `http://localhost:8000` atau domain Anda).
+2. Jalankan perintah `php artisan storage:link` (Jika sebelumnya sudah ada folder `public/storage`, hapus terlebih dahulu lalu jalankan perintah ini lagi).
+3. Hapus cache konfigurasi dengan menjalankan: `php artisan config:clear` dan `php artisan cache:clear`.
 
 ---
 **Hak Cipta © 2026 - MAN 1 Brebes**
