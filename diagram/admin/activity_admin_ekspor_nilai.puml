@@ -1,0 +1,31 @@
+@startuml
+skinparam linetype ortho
+skinparam DefaultFontName Arial
+skinparam shadowing false
+
+skinparam Activity {
+    BackgroundColor #FFFFCC
+    BorderColor #B22222
+    StartColor #B22222
+    EndColor #B22222
+    ArrowColor #B22222
+}
+skinparam ArrowColor #B22222
+
+mainframe act Admin Ekspor Nilai Siswa
+
+|Admin|
+start
+:Buka Menu "Laporan Nilai";
+:Pilih Kelas & Mata Pelajaran;
+:Tampilkan Data Nilai Siswa\n(Berdasarkan nilai yang diinput guru);
+:Klik "Ekspor Nilai";
+:Pilih Format (Excel / PDF);
+|Sistem|
+:Query Data Nilai dari Database;
+:Generate File sesuai Format;
+:Kirim File ke Browser;
+|Admin|
+:Unduh File ke Perangkat Lokal;
+stop
+@enduml

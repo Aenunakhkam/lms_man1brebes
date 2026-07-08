@@ -1,0 +1,47 @@
+@startuml
+skinparam linetype ortho
+skinparam DefaultFontName Arial
+skinparam shadowing false
+
+skinparam Activity {
+    BackgroundColor #FFFFCC
+    BorderColor #B22222
+    StartColor #B22222
+    EndColor #B22222
+    ArrowColor #B22222
+}
+skinparam ArrowColor #B22222{
+    BorderColor #333333
+    BackgroundColor #FAFAFA
+}
+
+title Activity Diagram: Kelola Ujian CBT, Laporan & Pengaturan
+
+|Admin|
+start
+:Akses Dashboard Admin;
+fork
+    :Buka Menu "Ujian CBT";
+    :Buat Jadwal & Upload Soal;
+    :Mulai Ujian;
+fork again
+    :Buka Menu "Ekspor Nilai / Presensi";
+    :Pilih Kelas & Filter Data;
+    :Klik tombol Ekspor;
+    |Sistem|
+    :Generate File PDF/Excel;
+    |Admin|
+    :Download File Laporan;
+fork again
+    :Buka Menu "Pengumuman";
+    :Buat Pengumuman Baru;
+    |Sistem|
+    :Broadcast ke Siswa/Guru;
+fork again
+    :Buka Menu "Pengaturan LMS";
+    :Ubah Logo / Info Sekolah;
+    |Sistem|
+    :Simpan Konfigurasi Baru;
+end fork
+stop
+@enduml

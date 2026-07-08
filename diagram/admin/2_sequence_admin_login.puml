@@ -1,0 +1,38 @@
+@startuml
+skinparam linetype ortho
+skinparam DefaultFontName Arial
+skinparam shadowing false
+
+skinparam Sequence {
+    ParticipantBackgroundColor #CCE5FF
+    ParticipantBorderColor #003366
+    LifeLineBorderColor #003366
+}
+skinparam ArrowColor #003366
+
+mainframe sd Admin Login
+
+actor Admin
+boundary "Halaman Login" as View
+control "AuthController" as Controller
+entity "Database User" as Model
+
+Admin -> View: Input Username & Password
+activate View
+View -> Controller: submitLogin(username, password)
+activate Controller
+Controller -> Model: verifyCredentials(username)
+activate Model
+Model --> Controller: return user_data & hash
+deactivate Model
+
+alt Password Valid && Role == Admin
+    Controller -> Controller: generateSession()
+    Controller --> View: Redirect to Admin Dashboard
+else Kredensial Salah
+    Controller --> View: Redirect back with Error Message
+end
+deactivate Controller
+View --> Admin: Menampilkan Halaman Hasil
+deactivate View
+@enduml

@@ -1,0 +1,138 @@
+@startuml
+skinparam linetype ortho
+skinparam DefaultFontName Arial
+skinparam shadowing false
+hide circle
+
+skinparam Class {
+    BackgroundColor #FFFFCC
+    BorderColor #B22222
+    HeaderBackgroundColor #FFCC99
+}
+skinparam ArrowColor #B22222
+
+mainframe erd Entity Relationship Diagram (ERD) LMS
+
+entity "users" as users {
+  * id : INT <<PK>>
+  --
+  * username : VARCHAR(50)
+  * password : VARCHAR(255)
+  * role : ENUM('admin','guru','siswa')
+}
+
+entity "guru" as guru {
+  * id : INT <<PK>>
+  --
+  * user_id : INT <<FK>>
+  * nip : VARCHAR(20)
+  * nama_guru : VARCHAR(100)
+}
+
+entity "siswa" as siswa {
+  * id : INT <<PK>>
+  --
+  * user_id : INT <<FK>>
+  * kelas_id : INT <<FK>>
+  * nisn : VARCHAR(20)
+  * nama_siswa : VARCHAR(100)
+}
+
+entity "jurusan" as jurusan {
+  * id : INT <<PK>>
+  --
+  * nama_jurusan : VARCHAR(50)
+}
+
+entity "kelas" as kelas {
+  * id : INT <<PK>>
+  --
+  * jurusan_id : INT <<FK>>
+  * nama_kelas : VARCHAR(50)
+}
+
+entity "pelajaran" as pelajaran {
+  * id : INT <<PK>>
+  --
+  * nama_pelajaran : VARCHAR(100)
+}
+
+entity "jadwal_pelajaran" as jadwal {
+  * id : INT <<PK>>
+  --
+  * kelas_id : INT <<FK>>
+  * pelajaran_id : INT <<FK>>
+  * guru_id : INT <<FK>>
+  * hari : VARCHAR(20)
+  * jam_mulai : TIME
+  * jam_selesai : TIME
+}
+
+entity "ujian_cbt" as ujian {
+  * id : INT <<PK>>
+  --
+  * pelajaran_id : INT <<FK>>
+  * kelas_id : INT <<FK>>
+  * guru_id : INT <<FK>>
+  * judul_ujian : VARCHAR(100)
+  * jadwal_mulai : DATETIME
+  * jadwal_selesai : DATETIME
+}
+
+entity "soal_ujian" as soal {
+  * id : INT <<PK>>
+  --
+  * ujian_id : INT <<FK>>
+  * tipe_soal : ENUM('PG','Essay')
+  * pertanyaan : TEXT
+  * opsi_jawaban : JSON
+  * kunci_jawaban : VARCHAR(255)
+}
+
+entity "nilai_ujian" as nilai {
+  * id : INT <<PK>>
+  --
+  * ujian_id : INT <<FK>>
+  * siswa_id : INT <<FK>>
+  * skor_nilai : DOUBLE
+}
+
+entity "presensi" as presensi {
+  * id : INT <<PK>>
+  --
+  * siswa_id : INT <<FK>>
+  * kelas_id : INT <<FK>>
+  * tanggal : DATE
+  * status : ENUM('Hadir','Sakit','Izin','Alpa')
+}
+
+entity "pengumuman" as pengumuman {
+  * id : INT <<PK>>
+  --
+  * judul : VARCHAR(100)
+  * isi : TEXT
+  * tanggal : DATE
+}
+
+' Relasi
+users ||--|| guru : "1..1"
+users ||--|| siswa : "1..1"
+jurusan ||--o{ kelas : "1..*"
+kelas ||--o{ siswa : "1..*"
+
+kelas ||--o{ jadwal : "1..*"
+pelajaran ||--o{ jadwal : "1..*"
+guru ||--o{ jadwal : "1..*"
+
+guru ||--o{ ujian : "membuat"
+pelajaran ||--o{ ujian : "1..*"
+kelas ||--o{ ujian : "1..*"
+
+ujian ||--o{ soal : "memiliki"
+ujian ||--o{ nilai : "menghasilkan"
+siswa ||--o{ nilai : "mendapatkan"
+
+siswa ||--o{ presensi : "memiliki"
+kelas ||--o{ presensi : "1..*"
+
+@enduml
