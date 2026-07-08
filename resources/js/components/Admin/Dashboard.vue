@@ -197,20 +197,35 @@
             <v-menu min-width="300px" rounded="lg">
                 <template v-slot:activator="{ props }">
                     <v-btn icon variant="text" class="mr-2" v-bind="props">
-                        <v-badge color="error" content="3" dot>
+                        <v-badge color="error" :content="unreadCount" :model-value="unreadCount > 0">
                             <v-icon>mdi-bell-outline</v-icon>
                         </v-badge>
                     </v-btn>
                 </template>
-                <v-card>
-                    <v-card-title class="text-subtitle-1 px-4 py-2 bg-primary text-white">
-                        Notifikasi
+                <v-card width="350" max-height="400" class="d-flex flex-column">
+                    <v-card-title class="text-subtitle-1 px-4 py-3 bg-primary text-white d-flex justify-space-between align-center">
+                        <span>Notifikasi</span>
+                        <v-btn v-if="unreadCount > 0" variant="text" size="small" class="text-none px-0" color="white" @click="markAllAsRead">Tandai semua dibaca</v-btn>
                     </v-card-title>
-                    <v-list lines="two">
-                        <v-list-item
+                    <v-list lines="three" class="overflow-y-auto" style="flex: 1 1 auto;">
+                        <template v-if="notifications.length > 0">
+                            <v-list-item
+                                v-for="notif in notifications"
+                                :key="notif.id"
+                                :title="notif.title"
+                                :subtitle="notif.message"
+                                :class="!notif.is_read ? 'bg-blue-lighten-5' : ''"
+                                @click="markAsRead(notif)"
+                            >
+                                <template v-slot:prepend>
+                                    <v-icon :color="notif.is_read ? 'grey' : 'primary'">mdi-bell-ring</v-icon>
+                                </template>
+                            </v-list-item>
+                        </template>
+                        <v-list-item v-else
                             prepend-icon="mdi-information"
-                            title="Selamat Datang"
-                            subtitle="Selamat datang di LMS MAN 1 Brebes. Belum ada notifikasi baru."
+                            title="Belum ada notifikasi"
+                            subtitle="Anda telah membaca semua notifikasi."
                         ></v-list-item>
                     </v-list>
                 </v-card>
@@ -295,6 +310,9 @@ const drawer = ref(true);
 const user = ref(null);
 const appSettings = ref({});
 
+const notifications = ref([]);
+const unreadCount = ref(0);
+
 const currentThemeIcon = computed(() => {
     return theme.global.name.value === 'dark' ? 'mdi-moon-waning-crescent' : 'mdi-white-balance-sunny';
 });
@@ -302,6 +320,41 @@ const currentThemeIcon = computed(() => {
 const setTheme = (val) => {
     theme.global.name.value = val;
     localStorage.setItem('theme', val);
+};
+
+const fetchNotifications = async () => {
+    try {
+        const response = await axios.get('/api/notifications');
+        notifications.value = response.data.notifications;
+        unreadCount.value = response.data.unread_count;
+    } catch (error) {
+        console.error('Error fetching notifications:', error);
+    }
+};
+
+const markAsRead = async (notif) => {
+    if (notif.is_read) {
+        if (notif.link) router.push(notif.link);
+        return;
+    }
+    try {
+        await axios.post(`/api/notifications/${notif.id}/mark-as-read`);
+        notif.is_read = true;
+        unreadCount.value = Math.max(0, unreadCount.value - 1);
+        if (notif.link) router.push(notif.link);
+    } catch (error) {
+        console.error('Error marking as read:', error);
+    }
+};
+
+const markAllAsRead = async () => {
+    try {
+        await axios.post('/api/notifications/mark-all-as-read');
+        notifications.value.forEach(n => n.is_read = true);
+        unreadCount.value = 0;
+    } catch (error) {
+        console.error('Error marking all as read:', error);
+    }
 };
 
 const fetchSettings = async () => {
@@ -317,6 +370,7 @@ const fetchSettings = async () => {
 
 onMounted(() => {
     fetchSettings();
+    fetchNotifications();
     const userData = localStorage.getItem('user');
     if (userData) {
         user.value = JSON.parse(userData);

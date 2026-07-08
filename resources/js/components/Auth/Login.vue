@@ -68,7 +68,7 @@
                                     <div class="mb-10">
                                         <div class="d-flex justify-space-between align-center mb-3">
                                             <div class="text-caption font-weight-black text-black text-uppercase" style="letter-spacing: 2px;">Kata Sandi</div>
-                                            <a href="#" class="text-caption text-black font-weight-black text-decoration-underline">Bantuan?</a>
+                                            <a href="#" @click.prevent="forgotPasswordDialog = true" class="text-caption text-black font-weight-black text-decoration-underline">Lupa Password?</a>
                                         </div>
                                         <v-text-field
                                             v-model="password"
@@ -130,6 +130,69 @@
                     </v-col>
                 </v-row>
             </v-container>
+            
+            <!-- Forgot Password Dialog -->
+            <v-dialog v-model="forgotPasswordDialog" max-width="420" persistent>
+                <v-card rounded="0" class="pa-4">
+                    <v-card-title class="text-h6 font-weight-black mb-2">LUPA PASSWORD</v-card-title>
+                    
+                    <!-- Step 1: Input Email -->
+                    <v-card-text v-if="forgotPasswordStep === 1">
+                        <p class="text-body-2 mb-4 text-grey-darken-1">Masukkan alamat email yang terdaftar untuk memeriksa akun Anda.</p>
+                        <v-text-field
+                            v-model="forgotPasswordEmail"
+                            placeholder="Email Anda"
+                            variant="outlined"
+                            color="black"
+                            density="comfortable"
+                            :error-messages="forgotPasswordError"
+                            class="sharp-input"
+                            rounded="0"
+                            hide-details="auto"
+                        ></v-text-field>
+                    </v-card-text>
+                    
+                    <!-- Step 2: Confirm Reset -->
+                    <v-card-text v-if="forgotPasswordStep === 2">
+                        <v-alert type="success" variant="tonal" class="mb-4" rounded="0">
+                            Email yang Anda masukkan benar.
+                        </v-alert>
+                        <p class="text-body-2 text-grey-darken-1">Apakah Anda ingin melanjutkan proses reset password?</p>
+                    </v-card-text>
+                    
+                    <!-- Step 3: Success -->
+                    <v-card-text v-if="forgotPasswordStep === 3">
+                        <v-alert type="info" variant="tonal" class="mb-4" rounded="0">
+                            Permintaan reset password telah dikirim. Silakan hubungi administrator Anda.
+                        </v-alert>
+                    </v-card-text>
+
+                    <v-card-actions class="pt-4 pb-2 px-4">
+                        <v-spacer></v-spacer>
+                        <v-btn variant="text" color="grey-darken-1" @click="closeForgotPasswordDialog" class="text-none font-weight-bold mr-2">Tutup</v-btn>
+                        
+                        <v-btn 
+                            v-if="forgotPasswordStep === 1" 
+                            color="black" 
+                            variant="flat" 
+                            class="text-none px-6 font-weight-bold sharp-btn" 
+                            rounded="0"
+                            :loading="forgotPasswordLoading"
+                            @click="verifyForgotPasswordEmail"
+                        >Cek Email</v-btn>
+                        
+                        <v-btn 
+                            v-if="forgotPasswordStep === 2" 
+                            color="black" 
+                            variant="flat" 
+                            class="text-none px-6 font-weight-bold sharp-btn" 
+                            rounded="0"
+                            :loading="forgotPasswordLoading"
+                            @click="processForgotPasswordReset"
+                        >Konfirmasi Reset Password</v-btn>
+                    </v-card-actions>
+                </v-card>
+            </v-dialog>
         </v-main>
     </v-app>
 </template>
@@ -151,6 +214,65 @@ const loading = ref(false);
 const errorMessage = ref('');
 const appSettings = ref({});
 const Laravel = window.Laravel;
+
+// Forgot Password State
+const forgotPasswordDialog = ref(false);
+const forgotPasswordStep = ref(1);
+const forgotPasswordEmail = ref('');
+const forgotPasswordError = ref('');
+const forgotPasswordLoading = ref(false);
+
+const closeForgotPasswordDialog = () => {
+    forgotPasswordDialog.value = false;
+    setTimeout(() => {
+        forgotPasswordStep.value = 1;
+        forgotPasswordEmail.value = '';
+        forgotPasswordError.value = '';
+    }, 300);
+};
+
+const verifyForgotPasswordEmail = async () => {
+    if (!forgotPasswordEmail.value) {
+        forgotPasswordError.value = 'Email wajib diisi';
+        return;
+    }
+    
+    forgotPasswordLoading.value = true;
+    forgotPasswordError.value = '';
+    
+    try {
+        const response = await axios.post('/api/forgot-password/verify', {
+            email: forgotPasswordEmail.value
+        });
+        
+        if (response.data.success) {
+            forgotPasswordStep.value = 2;
+        }
+    } catch (error) {
+        forgotPasswordError.value = error.response?.data?.message || 'Email tidak ditemukan';
+    } finally {
+        forgotPasswordLoading.value = false;
+    }
+};
+
+const processForgotPasswordReset = async () => {
+    forgotPasswordLoading.value = true;
+    
+    try {
+        const response = await axios.post('/api/forgot-password/process', {
+            email: forgotPasswordEmail.value
+        });
+        
+        if (response.data.success) {
+            forgotPasswordStep.value = 3;
+        }
+    } catch (error) {
+        forgotPasswordError.value = 'Terjadi kesalahan sistem.';
+        forgotPasswordStep.value = 1;
+    } finally {
+        forgotPasswordLoading.value = false;
+    }
+};
 
 const fetchSettings = async () => {
     try {

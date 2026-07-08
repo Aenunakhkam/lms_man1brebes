@@ -15,8 +15,12 @@ use App\Http\Controllers\Api\Admin\SettingController;
 use App\Http\Controllers\Api\Admin\AnnouncementController;
 use App\Http\Controllers\Api\ProfileController;
 
+use App\Http\Controllers\Api\ForgotPasswordController;
+
 // Public routes
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/forgot-password/verify', [ForgotPasswordController::class, 'verifyEmail']);
+Route::post('/forgot-password/process', [ForgotPasswordController::class, 'processReset']);
 Route::get('/public-stats', [PublicStatsController::class, 'index']);
 Route::get('/settings', [SettingController::class, 'index']);
 
