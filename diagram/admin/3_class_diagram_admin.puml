@@ -1,0 +1,76 @@
+@startuml
+skinparam linetype ortho
+skinparam DefaultFontName Arial
+skinparam shadowing false
+
+skinparam Class {
+    BackgroundColor #FFFFCC
+    BorderColor #B22222
+    HeaderBackgroundColor #FFCC99
+}
+skinparam ArrowColor #B22222
+
+mainframe class Modul Admin
+
+class User {
+    +id: int
+    +username: string
+    +password: string
+    +role: string
+    +resetPassword(user_id: int): void
+}
+class Guru {
+    +nip: string
+    +nama_guru: string
+    +tambahData(data: array): void
+    +importData(file: excel): void
+}
+class Siswa {
+    +nisn: string
+    +nama_siswa: string
+    +kelas_id: int
+    +tambahData(data: array): void
+    +importData(file: excel): void
+}
+class Kelas {
+    +id: int
+    +nama_kelas: string
+    +jurusan_id: int
+}
+class Pelajaran {
+    +id: int
+    +nama_pelajaran: string
+}
+class Jurusan {
+    +id: int
+    +nama_jurusan: string
+}
+class UjianCBT {
+    +id: int
+    +judul: string
+    +jadwal: datetime
+    +tambahSoal(): void
+    +mulaiUjian(): void
+}
+class Laporan {
+    +eksporNilai(kelas_id: int): file
+    +eksporPresensi(tanggal: date): file
+}
+class PengaturanLMS {
+    +nama_sekolah: string
+    +logo: string
+    +updateSetting(): void
+}
+
+User "1" -- "1" Guru : relasi (akun) >
+User "1" -- "1" Siswa : relasi (akun) >
+User "1" -- "1" PengaturanLMS : mengelola >
+Jurusan "1" -- "*" Kelas : memiliki >
+Kelas "1" -- "*" Siswa : diisi oleh >
+Kelas "*" -- "*" Pelajaran : memiliki >
+Guru "1" -- "*" Pelajaran : mengajar >
+Guru "1" -- "*" UjianCBT : membuat >
+UjianCBT "*" -- "1" Pelajaran : mapel ujian >
+UjianCBT "*" -- "*" Kelas : diikuti kelas >
+UjianCBT "1" -- "1" Laporan : sumber data >
+@enduml

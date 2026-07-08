@@ -1,0 +1,80 @@
+@startuml
+' Kita hapus left to right direction agar orientasinya Top-to-Bottom (Dari atas ke bawah)
+skinparam linetype ortho
+skinparam DefaultFontName Arial
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam nodesep 40
+skinparam ranksep 40
+
+skinparam UseCase {
+    BackgroundColor #FFFFCC
+    BorderColor #B22222
+    BorderThickness 1
+}
+skinparam Actor {
+    BackgroundColor #FFFFCC
+    BorderColor #B22222
+}
+skinparam ArrowColor #B22222
+
+mainframe uc Sistem LMS (Modul Admin)
+
+actor Admin
+
+rectangle "LMS MAN 1 Brebes" {
+    usecase "Login Aplikasi" as UC_Login
+    usecase "Kelola Data Pengguna" as UC_Pengguna
+    usecase "Kelola Data Guru" as UC_Guru
+    usecase "Kelola Data Siswa" as UC_Siswa
+    usecase "Kelola Data Kelas" as UC_Kelas
+    usecase "Kelola Data Pelajaran" as UC_Pelajaran
+
+    usecase "Kelola Data Jurusan" as UC_Jurusan
+    usecase "Mengelola Ujian CBT" as UC_CBT
+    usecase "Ekspor Nilai" as UC_Nilai
+    usecase "Ekspor Presensi" as UC_Presensi
+    usecase "Kelola Pengumuman" as UC_Pengumuman
+    usecase "Pengaturan LMS" as UC_Pengaturan
+
+    ' --- MEMBENTUK GRID 2 KOLOM x 6 BARIS ---
+    
+    ' Kolom 1 (Kiri): Menyusun ke bawah secara berurutan
+    UC_Login -[hidden]down-> UC_Pengguna
+    UC_Pengguna -[hidden]down-> UC_Guru
+    UC_Guru -[hidden]down-> UC_Siswa
+    UC_Siswa -[hidden]down-> UC_Kelas
+    UC_Kelas -[hidden]down-> UC_Pelajaran
+
+    ' Kolom 2 (Kanan): Menyusun ke bawah secara berurutan
+    UC_Jurusan -[hidden]down-> UC_CBT
+    UC_CBT -[hidden]down-> UC_Nilai
+    UC_Nilai -[hidden]down-> UC_Presensi
+    UC_Presensi -[hidden]down-> UC_Pengumuman
+    UC_Pengumuman -[hidden]down-> UC_Pengaturan
+
+    ' Menyelaraskan Kolom 1 dan Kolom 2 secara Horizontal
+    UC_Login -[hidden]right-> UC_Jurusan
+    UC_Pengguna -[hidden]right-> UC_CBT
+    UC_Guru -[hidden]right-> UC_Nilai
+    UC_Siswa -[hidden]right-> UC_Presensi
+    UC_Kelas -[hidden]right-> UC_Pengumuman
+    UC_Pelajaran -[hidden]right-> UC_Pengaturan
+}
+
+' Relasi dari Admin (di atas) ke seluruh Use Case (di bawah)
+Admin --> UC_Login
+Admin --> UC_Pengguna
+Admin --> UC_Guru
+Admin --> UC_Siswa
+Admin --> UC_Kelas
+Admin --> UC_Pelajaran
+
+Admin --> UC_Jurusan
+Admin --> UC_CBT
+Admin --> UC_Nilai
+Admin --> UC_Presensi
+Admin --> UC_Pengumuman
+Admin --> UC_Pengaturan
+
+@enduml
