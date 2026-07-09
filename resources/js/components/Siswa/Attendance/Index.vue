@@ -106,7 +106,7 @@ const filterMonth = ref('all');
 const headers = [
     { title: 'No.', key: 'index', sortable: false, width: '50px' },
     { title: 'Tanggal', key: 'date' },
-    { title: 'Keterangan', key: 'subject.name' },
+    { title: 'Kelas', key: 'class.name' },
     { title: 'Status', key: 'status', align: 'center' },
 ];
 

@@ -25,9 +25,21 @@ class AnnouncementController extends Controller
 
         // Admins see all active announcements, others see targeted ones
         if ($role !== 'admin') {
-            $query->where(function($q) use ($role) {
+            $query->where(function($q) use ($role, $user) {
                 $q->where('target_role', 'all')
                   ->orWhere('target_role', $role);
+                  
+                if ($role === 'siswa') {
+                    $q->orWhere(function($sq) use ($user) {
+                        $sq->where('target_role', 'guru_classes')
+                           ->whereHas('user', function($uq) use ($user) {
+                                // check if the announcement creator teaches this student
+                                $uq->whereHas('schedules', function($sch) use ($user) {
+                                    $sch->whereIn('class_id', $user->classes()->pluck('classes.id'));
+                                });
+                           });
+                    });
+                }
             });
         }
 

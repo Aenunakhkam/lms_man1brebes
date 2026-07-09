@@ -18,5 +18,13 @@ class Setting extends Model
         'app_name',
         'app_developer',
         'app_version',
+        'academic_year',
+        'semester',
+        'is_maintenance',
+        'maintenance_message',
+    ];
+
+    protected $casts = [
+        'is_maintenance' => 'boolean',
     ];
 }

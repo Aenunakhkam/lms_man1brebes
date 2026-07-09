@@ -150,7 +150,7 @@ const routes = [
             {
                 path: 'announcements',
                 name: 'GuruAnnouncements',
-                component: () => import('../components/Siswa/Announcements/Index.vue')
+                component: () => import('../components/Guru/Announcements/Index.vue')
             },
             {
                 path: 'profile',

@@ -43,6 +43,14 @@
                 <td>{{ $quiz->teacher->name }}</td>
             </tr>
             <tr>
+                <td>Tahun Pelajaran</td>
+                <td>:</td>
+                <td>{{ $academic_year }}</td>
+                <td>Semester</td>
+                <td>:</td>
+                <td>{{ $semester }}</td>
+            </tr>
+            <tr>
                 <td>Jumlah Peserta</td>
                 <td>:</td>
                 <td colspan="4">{{ count($results) }} Siswa</td>
@@ -53,27 +61,27 @@
     <table class="main-table">
         <thead>
             <tr>
-                <th width="5%">No</th>
-                <th>Nama Siswa</th>
-                <th>NIS</th>
-                <th>Kelas</th>
-                <th width="10%">Skor</th>
-                <th width="10%">Benar</th>
-                <th width="10%">Salah</th>
-                <th>Status</th>
+                <th width="5%" style="background-color: #203764; color: #FFFFFF; font-weight: bold; text-align: center;">No</th>
+                <th style="background-color: #203764; color: #FFFFFF; font-weight: bold; text-align: left;">Nama Siswa</th>
+                <th style="background-color: #203764; color: #FFFFFF; font-weight: bold; text-align: center;">NIS</th>
+                <th style="background-color: #203764; color: #FFFFFF; font-weight: bold; text-align: center;">Kelas</th>
+                <th width="10%" style="background-color: #203764; color: #FFFFFF; font-weight: bold; text-align: center;">Skor</th>
+                <th width="10%" style="background-color: #203764; color: #FFFFFF; font-weight: bold; text-align: center;">Benar</th>
+                <th width="10%" style="background-color: #203764; color: #FFFFFF; font-weight: bold; text-align: center;">Salah</th>
+                <th style="background-color: #203764; color: #FFFFFF; font-weight: bold; text-align: center;">Status</th>
             </tr>
         </thead>
         <tbody>
             @foreach($results as $index => $result)
             <tr>
-                <td class="text-center">{{ $index + 1 }}</td>
-                <td>{{ $result->student->name }}</td>
-                <td>{{ $result->student->nis ?? '-' }}</td>
-                <td>{{ $result->student_class_name }}</td>
-                <td class="text-center">{{ $result->score }}</td>
-                <td class="text-center">{{ $result->total_points }}</td>
-                <td class="text-center">{{ $quiz->questions_count - $result->total_points }}</td>
-                <td class="text-center">{{ $result->status == 'completed' ? 'Selesai' : 'Sedang Mengerjakan' }}</td>
+                <td style="text-align: center;">{{ $index + 1 }}</td>
+                <td style="text-align: left;">{{ $result->student->name }}</td>
+                <td style="text-align: center;">{{ $result->student->nis ?? '-' }}</td>
+                <td style="text-align: center;">{{ $result->student_class_name }}</td>
+                <td style="text-align: center;">{{ $result->score }}</td>
+                <td style="text-align: center;">{{ $result->total_points }}</td>
+                <td style="text-align: center;">{{ $quiz->questions_count - $result->total_points }}</td>
+                <td style="text-align: center;">{{ $result->status == 'completed' ? 'Selesai' : 'Sedang Mengerjakan' }}</td>
             </tr>
             @endforeach
         </tbody>

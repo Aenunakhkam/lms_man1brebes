@@ -32,6 +32,20 @@
                             </div>
                         </div>
 
+                        <!-- Lampiran Tugas -->
+                        <div v-if="assignment.attachment" class="mb-6">
+                            <div class="text-subtitle-2 text-grey mb-2">File Lampiran Tugas:</div>
+                            <v-btn
+                                color="primary"
+                                variant="tonal"
+                                prepend-icon="mdi-file-download"
+                                :href="`/storage/${assignment.attachment}`"
+                                target="_blank"
+                            >
+                                Unduh Lampiran
+                            </v-btn>
+                        </div>
+
                         <!-- Hasil Penilaian Jika Ada -->
                         <div v-if="assignment.is_submitted && assignment.submission?.status === 'graded'" class="bg-success-lighten-5 pa-4 rounded-lg border-success border">
                             <h3 class="text-success-darken-2 d-flex align-center mb-2">
@@ -249,7 +263,10 @@ const submitAssignment = async () => {
     submitting.value = true;
     const formData = new FormData();
     if (submissionData.value.content) formData.append('content', submissionData.value.content);
-    if (submissionData.value.file && submissionData.value.file[0]) formData.append('file', submissionData.value.file[0]);
+    if (submissionData.value.file) {
+        const file = Array.isArray(submissionData.value.file) ? submissionData.value.file[0] : submissionData.value.file;
+        if (file) formData.append('file', file);
+    }
 
     try {
         const response = await axios.post(`/api/siswa/assignments/${assignment.value.id}/submit`, formData, {

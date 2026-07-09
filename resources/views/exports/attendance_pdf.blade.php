@@ -76,17 +76,25 @@
                 <td width="15%">KELAS</td>
                 <td width="2%">:</td>
                 <td width="33%">{{ strtoupper($class->name) }}</td>
-                <td width="15%">TAHUN PELAJARAN</td>
+                <td width="15%">MATA PELAJARAN</td>
                 <td width="2%">:</td>
-                <td width="33%">{{ date('Y') }}/{{ date('Y') + 1 }}</td>
+                <td width="33%">{{ strtoupper($subject_name) }}</td>
             </tr>
             <tr>
                 <td>PERIODE</td>
                 <td>:</td>
                 <td>{{ strtoupper($period) }}</td>
-                <td></td>
-                <td></td>
-                <td></td>
+                <td>NAMA GURU</td>
+                <td>:</td>
+                <td>{{ strtoupper($teacher->name) }}</td>
+            </tr>
+            <tr>
+                <td>TAHUN PELAJARAN</td>
+                <td>:</td>
+                <td>{{ strtoupper($academic_year) }}</td>
+                <td>SEMESTER</td>
+                <td>:</td>
+                <td>{{ strtoupper($semester) }}</td>
             </tr>
         </table>
     </div>
@@ -95,11 +103,12 @@
         <thead>
             <tr>
                 <th width="5%">NO</th>
-                <th width="35%" class="text-left">NAMA SISWA</th>
-                <th width="15%">HADIR</th>
-                <th width="15%">IZIN</th>
-                <th width="15%">SAKIT</th>
-                <th width="15%">ALPA</th>
+                <th width="15%">TANGGAL</th>
+                <th width="30%" class="text-left">NAMA SISWA</th>
+                <th width="12%">HADIR</th>
+                <th width="12%">IZIN</th>
+                <th width="12%">SAKIT</th>
+                <th width="12%">ALPA</th>
             </tr>
         </thead>
         <tbody>
@@ -113,6 +122,7 @@
                 @endphp
                 <tr>
                     <td>{{ $loop->iteration }}</td>
+                    <td>{{ $exact_date ? date('d-m-Y', strtotime($exact_date)) : '-' }}</td>
                     <td class="text-left">{{ strtoupper($student->name) }}</td>
                     <td>{{ $hadir }}</td>
                     <td>{{ $izin }}</td>

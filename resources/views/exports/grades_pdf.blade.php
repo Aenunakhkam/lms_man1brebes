@@ -87,7 +87,7 @@
                 <td width="33%">{{ strtoupper($class->name) }}</td>
                 <td width="15%">TAHUN PELAJARAN</td>
                 <td width="2%">:</td>
-                <td width="33%">{{ date('Y') }}/{{ date('Y') + 1 }}</td>
+                <td width="33%">{{ strtoupper($academic_year) }}</td>
             </tr>
             <tr>
                 <td>GURU PENGAMPU</td>
@@ -95,7 +95,7 @@
                 <td>{{ strtoupper($teacher->name) }}</td>
                 <td>SEMESTER</td>
                 <td>:</td>
-                <td>-</td>
+                <td>{{ strtoupper($semester) }}</td>
             </tr>
         </table>
     </div>
@@ -103,19 +103,19 @@
     <table class="grade-table">
         <thead>
             <tr>
-                <th class="no-col">NO</th>
-                <th class="name-col text-left">NAMA SISWA</th>
+                <th class="no-col" style="background-color: #203764; color: #FFFFFF; font-weight: bold; text-align: center;">NO</th>
+                <th class="name-col text-left" style="background-color: #203764; color: #FFFFFF; font-weight: bold; text-align: left;">NAMA SISWA</th>
                 @foreach($categories as $cat)
-                    <th>{{ $cat }}</th>
+                    <th style="background-color: #203764; color: #FFFFFF; font-weight: bold; text-align: center;">{{ strtoupper($cat) }}</th>
                 @endforeach
-                <th class="final-col">RATA-RATA</th>
+                <th class="final-col" style="color: #000000; font-weight: bold; text-align: center;">RATA-RATA</th>
             </tr>
         </thead>
         <tbody>
             @foreach($students as $index => $student)
                 <tr>
-                    <td>{{ $loop->iteration }}</td>
-                    <td class="text-left">{{ strtoupper($student->name) }}</td>
+                    <td style="text-align: center;">{{ $loop->iteration }}</td>
+                    <td class="text-left" style="text-align: left;">{{ strtoupper($student->name) }}</td>
                     @php $total = 0; $count = 0; @endphp
                     @foreach($categories as $cat)
                         @php 
@@ -123,9 +123,9 @@
                             $score = $grade ? $grade->score : 0;
                             if($grade) { $total += $score; $count++; }
                         @endphp
-                        <td>{{ $grade ? number_format($score, 0) : '-' }}</td>
+                        <td style="text-align: center;">{{ $grade ? number_format($score, 0) : '-' }}</td>
                     @endforeach
-                    <td class="final-col">
+                    <td class="final-col" style="background-color: #fff9c4; font-weight: bold; text-align: center;">
                         {{ $count > 0 ? number_format($total / $count, 1) : '0' }}
                     </td>
                 </tr>

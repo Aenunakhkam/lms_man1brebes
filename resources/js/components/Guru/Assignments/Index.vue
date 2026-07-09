@@ -30,6 +30,21 @@
                 <template v-slot:item.deadline="{ item }">
                     {{ formatDate(item.deadline) }}
                 </template>
+                <template v-slot:item.attachment="{ item }">
+                    <v-btn 
+                        v-if="item.attachment"
+                        color="info" 
+                        variant="tonal" 
+                        size="small" 
+                        prepend-icon="mdi-download"
+                        :href="`/storage/${item.attachment}`"
+                        target="_blank"
+                        rounded="lg"
+                    >
+                        Unduh
+                    </v-btn>
+                    <span v-else class="text-grey text-caption">Tidak ada</span>
+                </template>
                 <template v-slot:item.submissions_count="{ item }">
                     <v-chip color="primary" size="small" rounded="lg">
                         {{ item.submissions_count }} Terkumpul
@@ -114,6 +129,31 @@
                                     :rules="[v => !!v || 'Instruksi tugas wajib diisi']"
                                 ></v-textarea>
                             </v-col>
+                            <v-col cols="12">
+                                <v-file-input
+                                    v-model="editedItem.attachment_file"
+                                    label="File Lampiran Tugas (Opsional)"
+                                    variant="outlined"
+                                    rounded="lg"
+                                    prepend-icon="mdi-paperclip"
+                                    hint="Maks. 10MB (Bisa berupa PDF, Word, PPT, Excel, dll)"
+                                    persistent-hint
+                                ></v-file-input>
+                                
+                                <div v-if="editedItem.id && editedItem.attachment && !editedItem.remove_attachment" class="mt-2 d-flex align-center">
+                                    <v-icon color="info" class="mr-2">mdi-file-document</v-icon>
+                                    <span class="text-body-2 mr-4">File lampiran saat ini tersimpan</span>
+                                    <v-btn size="small" color="error" variant="text" @click="editedItem.remove_attachment = true">
+                                        Hapus File Ini
+                                    </v-btn>
+                                </div>
+                                <div v-if="editedItem.id && editedItem.remove_attachment" class="mt-2">
+                                    <span class="text-error text-caption">File lama akan dihapus saat disimpan</span>
+                                    <v-btn size="small" color="primary" variant="text" @click="editedItem.remove_attachment = false">
+                                        Batal Hapus
+                                    </v-btn>
+                                </div>
+                            </v-col>
                             <v-col cols="12" md="6">
                                 <v-text-field
                                     v-model="editedItem.start_time"
@@ -185,7 +225,10 @@ const editedItem = ref({
     description: '',
     start_time: '',
     deadline: '',
-    max_score: 100
+    max_score: 100,
+    attachment: null,
+    attachment_file: null,
+    remove_attachment: false
 });
 
 const defaultItem = {
@@ -196,7 +239,10 @@ const defaultItem = {
     description: '',
     start_time: '',
     deadline: '',
-    max_score: 100
+    max_score: 100,
+    attachment: null,
+    attachment_file: null,
+    remove_attachment: false
 };
 
 const headers = [
@@ -204,6 +250,7 @@ const headers = [
     { title: 'Judul', key: 'title' },
     { title: 'Kelas', key: 'class.name' },
     { title: 'Mapel', key: 'subject.name' },
+    { title: 'File Tugas', key: 'attachment', sortable: false, align: 'center' },
     { title: 'Deadline', key: 'deadline' },
     { title: 'Status', key: 'submissions_count', sortable: false },
     { title: 'Aksi', key: 'actions', sortable: false, align: 'end' },
@@ -252,7 +299,9 @@ const openDialog = (item = null) => {
         editedItem.value = { 
             ...item,
             start_time: formatForInput(item.start_time),
-            deadline: formatForInput(item.deadline)
+            deadline: formatForInput(item.deadline),
+            attachment_file: null,
+            remove_attachment: false
         };
     } else {
         editedItem.value = { ...defaultItem };
@@ -268,12 +317,38 @@ const save = async () => {
     if (!valid.value) return;
     saving.value = true;
     try {
-        const method = editedItem.value.id ? 'put' : 'post';
         const url = editedItem.value.id 
             ? `/api/guru/assignments/${editedItem.value.id}` 
             : '/api/guru/assignments';
+            
+        const formData = new FormData();
+        formData.append('title', editedItem.value.title);
+        formData.append('class_id', editedItem.value.class_id);
+        formData.append('subject_id', editedItem.value.subject_id);
+        formData.append('description', editedItem.value.description || '');
+        formData.append('start_time', editedItem.value.start_time);
+        formData.append('deadline', editedItem.value.deadline);
+        if (editedItem.value.max_score) formData.append('max_score', editedItem.value.max_score);
         
-        const response = await axios[method](url, editedItem.value);
+        if (editedItem.value.attachment_file) {
+            const file = Array.isArray(editedItem.value.attachment_file) ? editedItem.value.attachment_file[0] : editedItem.value.attachment_file;
+            if (file) {
+                formData.append('attachment', file);
+            }
+        }
+        
+        if (editedItem.value.id) {
+            formData.append('_method', 'put');
+            if (editedItem.value.remove_attachment) {
+                formData.append('remove_attachment', '1');
+            }
+        }
+
+        const response = await axios.post(url, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
 
         if (response.data.success) {
             showSuccess(response.data.message);

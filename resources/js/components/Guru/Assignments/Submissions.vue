@@ -29,6 +29,22 @@
                     </v-chip>
                 </template>
 
+                <template v-slot:item.file_path="{ item }">
+                    <v-btn 
+                        v-if="getSubmission(item)?.file_path"
+                        color="info" 
+                        variant="tonal" 
+                        size="small" 
+                        prepend-icon="mdi-download"
+                        :href="`/storage/${getSubmission(item).file_path}`"
+                        target="_blank"
+                        rounded="lg"
+                    >
+                        Unduh
+                    </v-btn>
+                    <span v-else-if="getSubmission(item)" class="text-grey text-caption">Tidak ada file</span>
+                </template>
+
                 <template v-slot:item.score="{ item }">
                     <span v-if="getSubmission(item)?.score !== null" class="font-weight-bold">
                         {{ getSubmission(item).score }} / {{ assignment?.max_score || 100 }}
@@ -157,6 +173,7 @@ const headers = [
     { title: 'NIS', key: 'nis' },
     { title: 'Nama Siswa', key: 'name' },
     { title: 'Status', key: 'status', sortable: false },
+    { title: 'File Jawaban', key: 'file_path', sortable: false, align: 'center' },
     { title: 'Nilai', key: 'score' },
     { title: 'Aksi', key: 'actions', sortable: false, align: 'end' },
 ];

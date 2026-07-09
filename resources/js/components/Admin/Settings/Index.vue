@@ -109,6 +109,46 @@
                                     prepend-inner-icon="mdi-information-outline"
                                 ></v-text-field>
                             </v-col>
+                            <v-col cols="12" md="6">
+                                <v-text-field
+                                    v-model="settings.academic_year"
+                                    label="Tahun Pelajaran"
+                                    variant="outlined"
+                                    prepend-inner-icon="mdi-calendar-range"
+                                    placeholder="Contoh: 2025/2026"
+                                ></v-text-field>
+                            </v-col>
+                            <v-col cols="12" md="6">
+                                <v-select
+                                    v-model="settings.semester"
+                                    :items="['Ganjil', 'Genap']"
+                                    label="Semester"
+                                    variant="outlined"
+                                    prepend-inner-icon="mdi-book-open-page-variant"
+                                ></v-select>
+                            </v-col>
+                            <v-col cols="12" md="6" class="d-flex align-center">
+                                <v-switch
+                                    v-model="settings.is_maintenance"
+                                    label="Mode Pemeliharaan (Maintenance Mode)"
+                                    color="error"
+                                    inset
+                                    persistent-hint
+                                    hint="Guru & Siswa akan diarahkan ke halaman pemeliharaan."
+                                ></v-switch>
+                            </v-col>
+                            <v-col cols="12" v-if="settings.is_maintenance">
+                                <v-textarea
+                                    v-model="settings.maintenance_message"
+                                    label="Pesan Informasi Pemeliharaan (Kustom)"
+                                    variant="outlined"
+                                    prepend-inner-icon="mdi-information"
+                                    placeholder="Contoh: Kami sedang meningkatkan kapasitas server, aplikasi dapat diakses kembali pukul 14:00 WIB."
+                                    persistent-hint
+                                    hint="Teks ini akan ditampilkan kepada Guru & Siswa di halaman pemeliharaan."
+                                    rows="3"
+                                ></v-textarea>
+                            </v-col>
                         </v-row>
 
                         <div class="mt-10 d-flex justify-end gap-3">
@@ -144,7 +184,11 @@ const settings = ref({
     school_email: '',
     app_name: '',
     app_developer: '',
-    app_version: ''
+    app_version: '',
+    academic_year: '',
+    semester: '',
+    is_maintenance: false,
+    maintenance_message: ''
 });
 
 const loadSettings = async () => {
@@ -188,7 +232,11 @@ const saveSettings = async () => {
         const formData = new FormData();
         Object.keys(settings.value).forEach(key => {
             if (key !== 'school_logo' && settings.value[key] !== null) {
-                formData.append(key, settings.value[key]);
+                let val = settings.value[key];
+                if (key === 'is_maintenance') {
+                    val = val ? 1 : 0;
+                }
+                formData.append(key, val);
             }
         });
 

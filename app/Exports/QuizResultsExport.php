@@ -17,6 +17,6 @@ class QuizResultsExport implements FromView, ShouldAutoSize
 
     public function view(): View
     {
-        return view('exports.quiz_results', $this->data);
+        return view('exports.quiz_results_excel', $this->data);
     }
 }

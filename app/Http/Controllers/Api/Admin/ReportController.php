@@ -24,7 +24,7 @@ class ReportController extends Controller
         ]);
     }
 
-    public function exportGradesPdf(Request $request)
+    private function prepareGradesData(Request $request)
     {
         $query = Grade::with(['student', 'class', 'subject']);
         
@@ -42,24 +42,30 @@ class ReportController extends Controller
         $className = $request->class_id ? Classes::find($request->class_id)->name : 'Semua Kelas';
         $subjectName = $request->subject_id ? Subject::find($request->subject_id)->name : 'Semua Mata Pelajaran';
 
-        $data = [
+        return [
             'grades' => $grades,
             'students' => $students,
             'class' => (object)['name' => $className],
             'subject' => (object)['name' => $subjectName],
             'teacher' => (object)['name' => 'Admin (Rekapitulasi)', 'nip' => '-'],
-            'categories' => ['Tugas', 'UH', 'UTS', 'UAS'], // Dummy categories for admin overview
+            'categories' => ['Tugas', 'UH', 'UTS', 'UAS'],
             'school_name' => $settings->school_name ?? 'LMS MAN 1 Brebes',
             'location' => 'Brebes',
             'school_address' => $settings->school_address ?? 'Jl. Jenderal Sudirman No. 12',
             'school_phone' => $settings->school_phone ?? '(0283) 123456',
             'school_website' => $settings->school_website ?? 'www.man1brebes.sch.id',
+            'academic_year' => $settings->academic_year ?? (date('Y') . '/' . (date('Y') + 1)),
+            'semester' => $settings->semester ?? '-',
             'isAdmin' => true
         ];
+    }
 
+    public function exportGradesPdf(Request $request)
+    {
+        $data = $this->prepareGradesData($request);
         $pdf = Pdf::loadView('exports.grades_pdf', $data)->setPaper('a4', 'landscape');
         
-        $filename = 'Rekap_Nilai_' . Str::slug($className) . '_' . Str::slug($subjectName) . '.pdf';
+        $filename = 'Rekap_Nilai_' . Str::slug($data['class']->name) . '_' . Str::slug($data['subject']->name) . '.pdf';
         if (ob_get_length()) ob_end_clean();
         
         return $pdf->download($filename);
@@ -67,12 +73,12 @@ class ReportController extends Controller
 
     public function exportGradesExcel(Request $request)
     {
-        $className = $request->class_id ? Classes::find($request->class_id)->name : 'Semua Kelas';
-        $subjectName = $request->subject_id ? Subject::find($request->subject_id)->name : 'Semua Mata Pelajaran';
+        $data = $this->prepareGradesData($request);
+        $filename = 'Rekap_Nilai_' . Str::slug($data['class']->name) . '_' . Str::slug($data['subject']->name) . '.xlsx';
         
-        $filename = 'Rekap_Nilai_' . Str::slug($className) . '_' . Str::slug($subjectName) . '.xlsx';
+        if (ob_get_length()) ob_end_clean();
         
-        return Excel::download(new GradesExport($request->class_id, $request->subject_id), $filename);
+        return Excel::download(new GradesExport($data), $filename);
     }
 
     public function exportAttendancePdf(Request $request)
@@ -100,6 +106,8 @@ class ReportController extends Controller
             'students' => $students,
             'class' => (object)['name' => $className],
             'period' => $period,
+            'subject_name' => '-',
+            'teacher' => (object)['name' => 'Admin (Rekapitulasi)', 'nip' => '-'],
             'headmaster_name' => $settings->headmaster_name ?? 'H. Kepala Madrasah, S.Pd, M.Pd',
             'headmaster_nip' => $settings->headmaster_nip ?? '19700101 199512 1 001',
             'school_name' => $settings->school_name ?? 'LMS MAN 1 Brebes',
@@ -107,6 +115,8 @@ class ReportController extends Controller
             'school_address' => $settings->school_address ?? 'Jl. Jenderal Sudirman No. 12',
             'school_phone' => $settings->school_phone ?? '(0283) 123456',
             'school_website' => $settings->school_website ?? 'www.man1brebes.sch.id',
+            'academic_year' => $settings->academic_year ?? (date('Y') . '/' . (date('Y') + 1)),
+            'semester' => $settings->semester ?? '-',
             'isAdmin' => true
         ];
 
@@ -120,11 +130,37 @@ class ReportController extends Controller
 
     public function exportAttendanceExcel(Request $request)
     {
+        $query = Attendance::with(['student', 'class']);
+        if ($request->class_id) {
+            $query->where('class_id', $request->class_id);
+        }
+        if ($request->month) {
+            $query->whereMonth('date', date('m', strtotime($request->month)))
+                  ->whereYear('date', date('Y', strtotime($request->month)));
+        }
+
+        $attendances = $query->orderBy('date', 'desc')->get();
+        $settings = $this->getSettings();
         $className = $request->class_id ? Classes::find($request->class_id)->name : 'Semua Kelas';
         $period = $request->month ? date('F Y', strtotime($request->month)) : 'Semua Waktu';
-        
+
+        $data = [
+            'attendances' => $attendances,
+            'class' => (object)['name' => $className],
+            'period' => $period,
+            'subject_name' => '-',
+            'teacher' => (object)['name' => 'Admin (Rekapitulasi)', 'nip' => '-'],
+            'school_name' => $settings->school_name ?? 'LMS MAN 1 Brebes',
+            'school_address' => $settings->school_address ?? 'Jl. Jenderal Sudirman No. 12',
+            'school_phone' => $settings->school_phone ?? '(0283) 123456',
+            'school_website' => $settings->school_website ?? 'www.man1brebes.sch.id',
+            'academic_year' => $settings->academic_year ?? (date('Y') . '/' . (date('Y') + 1)),
+            'semester' => $settings->semester ?? '-',
+        ];
+
         $filename = 'Presensi_' . Str::slug($className) . '_' . Str::slug($period) . '.xlsx';
+        if (ob_get_length()) ob_end_clean();
         
-        return Excel::download(new \App\Exports\AttendanceExport($request->class_id, $request->month), $filename);
+        return Excel::download(new \App\Exports\AttendanceExport($data), $filename);
     }
 }

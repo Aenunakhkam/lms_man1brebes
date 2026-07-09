@@ -184,7 +184,7 @@ class SiswaController extends Controller
 
         $assignment->load(['subject', 'teacher']);
         
-        $submission = \App\Models\AssignmentSubmission::where('assignment_id', $assignment->id)
+        $submission = AssignmentSubmission::where('assignment_id', $assignment->id)
             ->where('student_id', $studentId)
             ->first();
             
@@ -202,7 +202,7 @@ class SiswaController extends Controller
         $studentId = Auth::id();
 
         // Check if already submitted
-        $existing = \App\Models\AssignmentSubmission::where('assignment_id', $assignment->id)
+        $existing = AssignmentSubmission::where('assignment_id', $assignment->id)
             ->where('student_id', $studentId)
             ->first();
 
@@ -211,12 +211,12 @@ class SiswaController extends Controller
         }
 
         // Validate time
-        $now = \Carbon\Carbon::now();
-        if ($assignment->start_time && $now->lt(\Carbon\Carbon::parse($assignment->start_time))) {
+        $now = Carbon::now();
+        if ($assignment->start_time && $now->lt(Carbon::parse($assignment->start_time))) {
             return response()->json(['success' => false, 'message' => 'Tugas belum dibuka'], 400);
         }
 
-        if ($assignment->deadline && $now->gt(\Carbon\Carbon::parse($assignment->deadline))) {
+        if ($assignment->deadline && $now->gt(Carbon::parse($assignment->deadline))) {
             return response()->json(['success' => false, 'message' => 'Tugas sudah ditutup (melewati batas waktu)'], 400);
         }
 
@@ -234,7 +234,7 @@ class SiswaController extends Controller
             $filePath = $request->file('file')->store('assignments/submissions', 'public');
         }
 
-        $submission = \App\Models\AssignmentSubmission::create([
+        $submission = AssignmentSubmission::create([
             'assignment_id' => $assignment->id,
             'student_id' => $studentId,
             'content' => $validated['content'] ?? null,
@@ -254,7 +254,7 @@ class SiswaController extends Controller
     {
         $studentId = Auth::id();
 
-        $submission = \App\Models\AssignmentSubmission::where('assignment_id', $assignment->id)
+        $submission = AssignmentSubmission::where('assignment_id', $assignment->id)
             ->where('student_id', $studentId)
             ->first();
 
@@ -306,17 +306,24 @@ class SiswaController extends Controller
 
     public function getAttendance()
     {
-        // For now, return empty or dummy data until attendance table is ready
+        $studentId = Auth::id();
+        $attendances = \App\Models\Attendance::with('class')
+            ->where('student_id', $studentId)
+            ->orderBy('date', 'desc')
+            ->get();
+
+        $summary = [
+            'hadir' => $attendances->where('status', 'Hadir')->count(),
+            'izin' => $attendances->where('status', 'Izin')->count(),
+            'sakit' => $attendances->where('status', 'Sakit')->count(),
+            'alpa' => $attendances->where('status', 'Alpa')->count(),
+            'total' => $attendances->count(),
+        ];
+
         return response()->json([
             'success' => true,
-            'data' => [],
-            'summary' => [
-                'hadir' => 0,
-                'izin' => 0,
-                'sakit' => 0,
-                'alpa' => 0,
-                'total' => 0
-            ]
+            'data' => $attendances,
+            'summary' => $summary
         ]);
     }
 }

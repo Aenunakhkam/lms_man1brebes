@@ -244,11 +244,20 @@ class GuruController extends Controller
             'description' => 'required|string',
             'start_time' => 'required|date',
             'deadline' => 'required|date|after_or_equal:start_time',
-            'max_score' => 'nullable|integer'
+            'max_score' => 'nullable|integer',
+            'attachment' => 'nullable|file|max:10240'
         ]);
 
-        $validated['teacher_id'] = Auth::id();
-        $assignment = Assignment::create($validated);
+        $data = $validated;
+        $data['teacher_id'] = Auth::id();
+
+        if ($request->hasFile('attachment')) {
+            $file = $request->file('attachment');
+            $path = $file->store('assignments/attachments', 'public');
+            $data['attachment'] = $path;
+        }
+
+        $assignment = Assignment::create($data);
 
         // Kirim notifikasi ke siswa di kelas tersebut
         $class = ClassModel::with('students')->find($validated['class_id']);
@@ -292,10 +301,33 @@ class GuruController extends Controller
             'description' => 'required|string',
             'start_time' => 'required|date',
             'deadline' => 'required|date|after_or_equal:start_time',
-            'max_score' => 'nullable|integer'
+            'max_score' => 'nullable|integer',
+            'attachment' => 'nullable|file|max:10240'
         ]);
 
-        $assignment->update($validated);
+        \Illuminate\Support\Facades\Log::info('updateAssignment payload: ', $request->all());
+        \Illuminate\Support\Facades\Log::info('hasFile attachment: ' . ($request->hasFile('attachment') ? 'Yes' : 'No'));
+
+        $data = $validated;
+
+        if ($request->hasFile('attachment')) {
+            // Hapus file lama jika ada
+            if ($assignment->attachment && Storage::disk('public')->exists($assignment->attachment)) {
+                Storage::disk('public')->delete($assignment->attachment);
+            }
+            
+            $file = $request->file('attachment');
+            $path = $file->store('assignments/attachments', 'public');
+            $data['attachment'] = $path;
+        } elseif ($request->boolean('remove_attachment')) {
+            // Hapus file yang sudah ada jika pengguna memilih untuk menghapus
+            if ($assignment->attachment && Storage::disk('public')->exists($assignment->attachment)) {
+                Storage::disk('public')->delete($assignment->attachment);
+            }
+            $data['attachment'] = null;
+        }
+
+        $assignment->update($data);
 
         return response()->json([
             'success' => true,
@@ -310,13 +342,18 @@ class GuruController extends Controller
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
+        // Hapus file attachment jika ada
+        if ($assignment->attachment && Storage::disk('public')->exists($assignment->attachment)) {
+            Storage::disk('public')->delete($assignment->attachment);
+        }
+
         // Hapus nilai di tabel grades yang terhubung dengan tugas ini
         Grade::where('gradable_type', Assignment::class)
             ->where('gradable_id', $assignment->id)
             ->delete();
 
         // Hapus juga assignment submissions yang terhubung
-        \App\Models\AssignmentSubmission::where('assignment_id', $assignment->id)->delete();
+        AssignmentSubmission::where('assignment_id', $assignment->id)->delete();
 
         $assignment->delete();
 
@@ -332,7 +369,7 @@ class GuruController extends Controller
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
-        $submissions = \App\Models\AssignmentSubmission::with('student')
+        $submissions = AssignmentSubmission::with('student')
             ->where('assignment_id', $assignment->id)
             ->get();
 
@@ -351,7 +388,7 @@ class GuruController extends Controller
 
     public function gradeAssignmentSubmission(Request $request, $submissionId)
     {
-        $submission = \App\Models\AssignmentSubmission::findOrFail($submissionId);
+        $submission = AssignmentSubmission::findOrFail($submissionId);
         $assignment = $submission->assignment;
 
         if ($assignment->teacher_id !== Auth::id()) {
@@ -371,11 +408,11 @@ class GuruController extends Controller
         ]);
 
         // Simpan/perbarui nilai di tabel grades agar muncul di menu Nilai Siswa
-        \App\Models\Grade::updateOrCreate(
+        Grade::updateOrCreate(
             [
                 'student_id'    => $submission->student_id,
                 'gradable_id'   => $assignment->id,
-                'gradable_type' => \App\Models\Assignment::class,
+                'gradable_type' => Assignment::class,
             ],
             [
                 'class_id'   => $assignment->class_id,
@@ -432,6 +469,23 @@ class GuruController extends Controller
         ]);
     }
 
+    public function getAttendance(Request $request)
+    {
+        $request->validate([
+            'class_id' => 'required|exists:classes,id',
+            'date' => 'required|date',
+        ]);
+
+        $attendances = \App\Models\Attendance::where('class_id', $request->class_id)
+            ->where('date', $request->date)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $attendances
+        ]);
+    }
+
     public function storeAttendance(Request $request)
     {
         $request->validate([
@@ -459,6 +513,138 @@ class GuruController extends Controller
             'success' => true,
             'message' => 'Presensi berhasil disimpan'
         ]);
+    }
+
+    public function deleteAttendance(Request $request)
+    {
+        $request->validate([
+            'class_id' => 'required|exists:classes,id',
+            'date' => 'required|date'
+        ]);
+
+        \App\Models\Attendance::where('class_id', $request->class_id)
+            ->where('date', $request->date)
+            ->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data presensi berhasil dihapus'
+        ]);
+    }
+
+    public function exportAttendancePdf(Request $request)
+    {
+        $request->validate([
+            'class_id' => 'required|exists:classes,id',
+        ]);
+
+        $query = \App\Models\Attendance::with(['student', 'class']);
+        $query->where('class_id', $request->class_id);
+        
+        if ($request->date) {
+            $query->whereDate('date', $request->date);
+        } elseif ($request->month) {
+            $query->whereMonth('date', date('m', strtotime($request->month)))
+                  ->whereYear('date', date('Y', strtotime($request->month)));
+        }
+
+        $attendances = $query->orderBy('date', 'desc')->get()->groupBy('student_id');
+        $students = User::whereIn('id', $attendances->keys())->get()->keyBy('id');
+        
+        $settings = Setting::first();
+        $className = ClassModel::find($request->class_id)->name;
+        
+        if ($request->date) {
+            $period = date('d F Y', strtotime($request->date));
+        } else {
+            $period = $request->month ? date('F Y', strtotime($request->month)) : 'Semua Waktu';
+        }
+        $teacher = Auth::user();
+        
+        $schedule = Schedule::where('class_id', $request->class_id)
+                                        ->where('teacher_id', $teacher->id)
+                                        ->first();
+        $subjectName = $schedule && $schedule->subject ? $schedule->subject->name : '-';
+
+        $data = [
+            'attendances' => $attendances,
+            'students' => $students,
+            'class' => (object)['name' => $className],
+            'period' => $period,
+            'exact_date' => $request->date ?? null,
+            'subject_name' => $subjectName,
+            'headmaster_name' => $settings->headmaster_name ?? 'H. Kepala Madrasah, S.Pd, M.Pd',
+            'headmaster_nip' => $settings->headmaster_nip ?? '19700101 199512 1 001',
+            'teacher' => (object)['name' => $teacher->name, 'nip' => $teacher->nip ?? '-'],
+            'school_name' => $settings->school_name ?? 'LMS MAN 1 Brebes',
+            'location' => 'Brebes',
+            'school_address' => $settings->school_address ?? 'Jl. Jenderal Sudirman No. 12',
+            'school_phone' => $settings->school_phone ?? '(0283) 123456',
+            'school_website' => $settings->school_website ?? 'www.man1brebes.sch.id',
+            'academic_year' => $settings->academic_year ?? (date('Y') . '/' . (date('Y') + 1)),
+            'semester' => $settings->semester ?? '-',
+            'isAdmin' => false
+        ];
+
+        $pdf = Pdf::loadView('exports.attendance_pdf', $data)->setPaper('a4', 'landscape');
+        
+        $filename = 'Presensi_' . Str::slug($className) . '_' . Str::slug($period) . '.pdf';
+        if (ob_get_length()) ob_end_clean();
+        
+        return $pdf->download($filename);
+    }
+
+    public function exportAttendanceExcel(Request $request)
+    {
+        $request->validate([
+            'class_id' => 'required|exists:classes,id',
+        ]);
+
+        $query = \App\Models\Attendance::with(['student', 'class']);
+        $query->where('class_id', $request->class_id);
+        
+        if ($request->date) {
+            $query->whereDate('date', $request->date);
+        } elseif ($request->month) {
+            $query->whereMonth('date', date('m', strtotime($request->month)))
+                  ->whereYear('date', date('Y', strtotime($request->month)));
+        }
+
+        $attendances = $query->orderBy('date', 'desc')->get();
+        $settings = Setting::first();
+        $className = ClassModel::find($request->class_id)->name;
+        
+        if ($request->date) {
+            $period = date('d F Y', strtotime($request->date));
+        } else {
+            $period = $request->month ? date('F Y', strtotime($request->month)) : 'Semua Waktu';
+        }
+        
+        $teacher = Auth::user();
+        
+        $schedule = Schedule::where('class_id', $request->class_id)
+                                        ->where('teacher_id', $teacher->id)
+                                        ->first();
+        $subjectName = $schedule && $schedule->subject ? $schedule->subject->name : '-';
+
+        $data = [
+            'attendances' => $attendances,
+            'class' => (object)['name' => $className],
+            'period' => $period,
+            'subject_name' => $subjectName,
+            'teacher' => (object)['name' => $teacher->name, 'nip' => $teacher->nip ?? '-'],
+            'school_name' => $settings->school_name ?? 'LMS MAN 1 Brebes',
+            'school_address' => $settings->school_address ?? 'Jl. Jenderal Sudirman No. 12',
+            'school_phone' => $settings->school_phone ?? '(0283) 123456',
+            'school_website' => $settings->school_website ?? 'www.man1brebes.sch.id',
+            'academic_year' => $settings->academic_year ?? (date('Y') . '/' . (date('Y') + 1)),
+            'semester' => $settings->semester ?? '-',
+        ];
+
+        $filename = 'Presensi_' . Str::slug($className) . '_' . Str::slug($period) . '.xlsx';
+        if (ob_get_length()) ob_end_clean();
+
+        return Excel::download(new \App\Exports\AttendanceExport($data), $filename);
     }
 
     public function getGrades(Request $request)
@@ -541,7 +727,7 @@ class GuruController extends Controller
     {
         // Pastikan ini guru yang bersangkutan (validasi via kelas yang diampu)
         $teacherId = Auth::id();
-        $isTeaching = \App\Models\Schedule::where('teacher_id', $teacherId)
+        $isTeaching = Schedule::where('teacher_id', $teacherId)
             ->where('class_id', $grade->class_id)
             ->where('subject_id', $grade->subject_id)
             ->exists();
@@ -567,7 +753,7 @@ class GuruController extends Controller
     public function destroyGrade(Grade $grade)
     {
         $teacherId = Auth::id();
-        $isTeaching = \App\Models\Schedule::where('teacher_id', $teacherId)
+        $isTeaching = Schedule::where('teacher_id', $teacherId)
             ->where('class_id', $grade->class_id)
             ->where('subject_id', $grade->subject_id)
             ->exists();
@@ -577,8 +763,8 @@ class GuruController extends Controller
         }
 
         // Jika grade ini terhubung dengan tugas, reset status submission di siswa
-        if ($grade->gradable_type === \App\Models\Assignment::class) {
-            \App\Models\AssignmentSubmission::where('assignment_id', $grade->gradable_id)
+        if ($grade->gradable_type === Assignment::class) {
+            AssignmentSubmission::where('assignment_id', $grade->gradable_id)
                 ->where('student_id', $grade->student_id)
                 ->update([
                     'score' => null,
@@ -606,24 +792,19 @@ class GuruController extends Controller
             $q->where('class_id', $request->class_id);
         })->get();
 
-        // Hanya ambil nilai MANUAL (bukan dari tugas otomatis)
-        // gradable_type null artinya input manual oleh guru
-        $categories = Grade::where('class_id', $request->class_id)
+        $grades = Grade::with('gradable')
+            ->where('class_id', $request->class_id)
             ->where('subject_id', $request->subject_id)
-            ->where(function($q) {
-                $q->whereNull('gradable_type')
-                  ->orWhere('gradable_type', '');
-            })
-            ->distinct('grade_type')
-            ->pluck('grade_type');
-
-        $grades = Grade::where('class_id', $request->class_id)
-            ->where('subject_id', $request->subject_id)
-            ->where(function($q) {
-                $q->whereNull('gradable_type')
-                  ->orWhere('gradable_type', '');
-            })
             ->get();
+
+        $categories = collect();
+        foreach($grades as $grade) {
+            if ($grade->gradable_type === Assignment::class && $grade->gradable) {
+                $grade->grade_type = 'Tugas: ' . $grade->gradable->title;
+            }
+            $categories->push($grade->grade_type);
+        }
+        $categories = $categories->unique()->values();
 
         return response()->json([
             'success' => true,
@@ -686,14 +867,19 @@ class GuruController extends Controller
             $q->where('class_id', $request->class_id);
         })->get();
 
-        $categories = Grade::where('class_id', $request->class_id)
-            ->where('subject_id', $request->subject_id)
-            ->distinct('grade_type')
-            ->pluck('grade_type');
-
-        $grades = Grade::where('class_id', $request->class_id)
+        $grades = Grade::with('gradable')
+            ->where('class_id', $request->class_id)
             ->where('subject_id', $request->subject_id)
             ->get();
+
+        $categories = collect();
+        foreach($grades as $grade) {
+            if ($grade->gradable_type === Assignment::class && $grade->gradable) {
+                $grade->grade_type = 'Tugas: ' . $grade->gradable->title;
+            }
+            $categories->push($grade->grade_type);
+        }
+        $categories = $categories->unique()->values();
 
         $settings = Setting::first();
 
@@ -708,7 +894,9 @@ class GuruController extends Controller
             'location' => 'Brebes', // Fallback as city is not in table
             'school_address' => $settings->school_address ?? 'Jl. Jenderal Sudirman No. 12',
             'school_phone' => $settings->school_phone ?? '(0283) 123456',
-            'school_website' => $settings->school_website ?? 'www.man1brebes.sch.id'
+            'school_website' => $settings->school_website ?? 'www.man1brebes.sch.id',
+            'academic_year' => $settings->academic_year ?? (date('Y') . '/' . (date('Y') + 1)),
+            'semester' => $settings->semester ?? '-',
         ];
     }
 

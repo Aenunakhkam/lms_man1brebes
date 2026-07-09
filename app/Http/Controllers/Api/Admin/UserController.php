@@ -161,7 +161,53 @@ class UserController extends Controller
     public function template(Request $request)
     {
         $role = $request->role ?: 'siswa';
-        return Excel::download(new \App\Exports\UsersTemplateExport($role), "template_import_{$role}.xlsx");
+        $fileName = "template_import_{$role}.xlsx";
+        $filePath = storage_path("app/{$fileName}");
+        
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        
+        $headings = ['nama', 'email', 'alamat', 'telepon'];
+        if ($role === 'siswa') {
+            $headings[] = 'nis';
+        } elseif ($role === 'guru') {
+            $headings[] = 'nip';
+        }
+        
+        foreach ($headings as $colIndex => $heading) {
+            $colLetter = chr(65 + $colIndex);
+            $sheet->setCellValue($colLetter . '1', $heading);
+            $sheet->getColumnDimension($colLetter)->setAutoSize(true);
+        }
+        
+        $headerRange = 'A1:' . chr(64 + count($headings)) . '1';
+        $sheet->getStyle($headerRange)->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'color' => ['argb' => 'FFFFFFFF'],
+            ],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['argb' => 'FF203764'],
+            ],
+            'alignment' => [
+                'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+            ],
+        ]);
+        
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        
+        if (!file_exists(dirname($filePath))) {
+            mkdir(dirname($filePath), 0755, true);
+        }
+        
+        $writer->save($filePath);
+        
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+        
+        return response()->download($filePath, $fileName)->deleteFileAfterSend(true);
     }
 
     public function import(Request $request)

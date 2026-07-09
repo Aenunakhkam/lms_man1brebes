@@ -25,7 +25,7 @@ Route::get('/public-stats', [PublicStatsController::class, 'index']);
 Route::get('/settings', [SettingController::class, 'index']);
 
 // Protected routes
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'maintenance'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
     Route::get('/announcements', [\App\Http\Controllers\Api\AnnouncementController::class, 'index']);
@@ -108,7 +108,11 @@ Route::middleware('auth:sanctum')->group(function () {
         
         // Attendance
         Route::get('/attendance/students', [\App\Http\Controllers\Api\Guru\GuruController::class, 'getStudentsForAttendance']);
+        Route::get('/attendance', [\App\Http\Controllers\Api\Guru\GuruController::class, 'getAttendance']);
         Route::post('/attendance', [\App\Http\Controllers\Api\Guru\GuruController::class, 'storeAttendance']);
+        Route::delete('/attendance', [\App\Http\Controllers\Api\Guru\GuruController::class, 'deleteAttendance']);
+        Route::get('/attendance/export/pdf', [\App\Http\Controllers\Api\Guru\GuruController::class, 'exportAttendancePdf']);
+        Route::get('/attendance/export/excel', [\App\Http\Controllers\Api\Guru\GuruController::class, 'exportAttendanceExcel']);
 
         // Grades
         Route::get('/assignments', [\App\Http\Controllers\Api\Guru\GuruController::class, 'getAssignments']);
@@ -130,12 +134,15 @@ Route::middleware('auth:sanctum')->group(function () {
         // Online Class Link
         Route::put('/schedules/{schedule}/online-link', [\App\Http\Controllers\Api\Guru\GuruController::class, 'updateOnlineLink']);
 
+        // Announcements
+        Route::apiResource('announcements', \App\Http\Controllers\Api\Guru\AnnouncementController::class);
+
         // CBT Routes
-        Route::apiResource('quizzes', \App\Http\Controllers\Api\Admin\QuizController::class);
-        Route::get('quizzes/{quiz}/questions', [\App\Http\Controllers\Api\Admin\QuizController::class, 'getQuestions']);
-        Route::post('quizzes/{quiz}/questions', [\App\Http\Controllers\Api\Admin\QuizController::class, 'storeQuestion']);
-        Route::put('quizzes/{quiz}/questions/{question}', [\App\Http\Controllers\Api\Admin\QuizController::class, 'updateQuestion']);
-        Route::delete('quizzes/{quiz}/questions/{question}', [\App\Http\Controllers\Api\Admin\QuizController::class, 'destroyQuestion']);
+        Route::apiResource('quizzes', QuizController::class);
+        Route::get('quizzes/{quiz}/questions', [QuizController::class, 'getQuestions']);
+        Route::post('quizzes/{quiz}/questions', [QuizController::class, 'storeQuestion']);
+        Route::put('quizzes/{quiz}/questions/{question}', [QuizController::class, 'updateQuestion']);
+        Route::delete('quizzes/{quiz}/questions/{question}', [QuizController::class, 'destroyQuestion']);
     });
 
     // Siswa routes

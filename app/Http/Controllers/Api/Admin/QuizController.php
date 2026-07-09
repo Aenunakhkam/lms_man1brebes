@@ -347,6 +347,8 @@ class QuizController extends Controller
             'school_name' => $settings->school_name ?? 'LMS MAN 1 BREBES',
             'school_address' => $settings->school_address ?? 'Brebes, Jawa Tengah',
             'school_phone' => $settings->school_phone ?? '-',
+            'academic_year' => $settings->academic_year ?? (date('Y') . '/' . (date('Y') + 1)),
+            'semester' => $settings->semester ?? '-',
         ];
     }
 

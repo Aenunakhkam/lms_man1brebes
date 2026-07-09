@@ -42,6 +42,10 @@ class SettingController extends Controller
             'app_developer' => 'nullable|string|max:255',
             'app_version' => 'nullable|string|max:50',
             'school_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'academic_year' => 'nullable|string|max:50',
+            'semester' => 'nullable|string|max:50',
+            'is_maintenance' => 'nullable|boolean',
+            'maintenance_message' => 'nullable|string',
         ]);
 
         if ($request->hasFile('school_logo')) {

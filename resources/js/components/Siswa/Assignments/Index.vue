@@ -40,7 +40,21 @@
                         </div>
                     </v-card-item>
                     <v-divider></v-divider>
-                    <v-card-actions class="pa-4">
+                    <v-card-actions class="pa-4 d-flex flex-column">
+                        <v-btn
+                            v-if="assignment.attachment"
+                            color="info"
+                            variant="tonal"
+                            rounded="lg"
+                            block
+                            prepend-icon="mdi-file-download"
+                            :href="`/storage/${assignment.attachment}`"
+                            target="_blank"
+                            class="mb-3"
+                        >
+                            Unduh File Tugas
+                        </v-btn>
+                        
                         <v-btn
                             :color="assignment.is_submitted ? 'success' : 'warning'"
                             variant="flat"
@@ -48,6 +62,7 @@
                             block
                             :prepend-icon="assignment.is_submitted ? 'mdi-check-circle' : 'mdi-pencil'"
                             :to="`/siswa/assignments/${assignment.id}`"
+                            class="ma-0"
                         >
                             {{ assignment.is_submitted ? 'Lihat Tugas' : 'Kerjakan Tugas' }}
                         </v-btn>

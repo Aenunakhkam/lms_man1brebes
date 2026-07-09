@@ -46,6 +46,15 @@ class AuthController extends Controller
         // Load role relationship
         $user->load('role');
 
+        $settings = \App\Models\Setting::first();
+        if ($settings && $settings->is_maintenance && $user->role->name !== 'admin') {
+            Auth::logout();
+            return response()->json([
+                'success' => false,
+                'message' => 'Aplikasi sedang dalam pemeliharaan (maintenance mode).'
+            ], 503);
+        }
+
         // Create token
         $token = $user->createToken('auth-token')->plainTextToken;
 

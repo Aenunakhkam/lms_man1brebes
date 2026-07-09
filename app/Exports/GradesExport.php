@@ -17,6 +17,6 @@ class GradesExport implements FromView, ShouldAutoSize
 
     public function view(): View
     {
-        return view('exports.grades_pdf', $this->data);
+        return view('exports.grades_excel', $this->data);
     }
 }

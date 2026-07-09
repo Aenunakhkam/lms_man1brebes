@@ -33,15 +33,17 @@
                         </v-list>
                     </v-menu>
                     
-                    <v-btn color="info" prepend-icon="mdi-import" variant="outlined" @click="$refs.fileInput.click()">
-                        Impor Excel
-                    </v-btn>
-                    
-                    <v-btn color="grey-darken-1" prepend-icon="mdi-download" variant="text" size="small" @click="downloadTemplate">
-                        Unduh Template
-                    </v-btn>
+                    <template v-if="roleFilter">
+                        <v-btn color="info" prepend-icon="mdi-import" variant="outlined" @click="$refs.fileInput.click()">
+                            Impor Excel
+                        </v-btn>
+                        
+                        <v-btn color="grey-darken-1" prepend-icon="mdi-download" variant="text" size="small" @click="downloadTemplate">
+                            Unduh Template
+                        </v-btn>
 
-                    <input type="file" ref="fileInput" hidden @change="handleImport" accept=".xlsx,.xls">
+                        <input type="file" ref="fileInput" hidden @change="handleImport" accept=".xlsx,.xls">
+                    </template>
 
                     <v-btn color="primary" prepend-icon="mdi-plus" @click="openDialog()">
                         {{ buttonText }}

@@ -2,58 +2,21 @@
 
 namespace App\Exports;
 
-use App\Models\Attendance;
-use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\WithMapping;
+use Illuminate\Contracts\View\View;
+use Maatwebsite\Excel\Concerns\FromView;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 
-class AttendanceExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize
+class AttendanceExport implements FromView, ShouldAutoSize
 {
-    protected $classId;
-    protected $month;
+    protected $data;
 
-    public function __construct($classId = null, $month = null)
+    public function __construct($data)
     {
-        $this->classId = $classId;
-        $this->month = $month;
+        $this->data = $data;
     }
 
-    public function collection()
+    public function view(): View
     {
-        $query = Attendance::with(['student', 'class']);
-        
-        if ($this->classId) {
-            $query->where('class_id', $this->classId);
-        }
-        
-        if ($this->month) {
-            $query->whereMonth('date', date('m', strtotime($this->month)))
-                  ->whereYear('date', date('Y', strtotime($this->month)));
-        }
-
-        return $query->orderBy('date', 'desc')->get();
-    }
-
-    public function headings(): array
-    {
-        return [
-            'Tanggal',
-            'Nama Siswa',
-            'NISN',
-            'Kelas',
-            'Status Kehadiran',
-        ];
-    }
-
-    public function map($attendance): array
-    {
-        return [
-            date('d-m-Y', strtotime($attendance->date)),
-            $attendance->student->name,
-            $attendance->student->nisn ?? '-',
-            $attendance->class->name,
-            $attendance->status,
-        ];
+        return view('exports.attendance_excel', $this->data);
     }
 }
