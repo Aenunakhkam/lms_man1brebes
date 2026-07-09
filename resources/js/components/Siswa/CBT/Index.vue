@@ -55,6 +55,16 @@
                             <v-icon size="18" color="primary" class="mr-2">mdi-calendar-check</v-icon>
                             <span>Selesai: {{ formatDateTime(quiz.end_time) }}</span>
                         </div>
+
+                        <!-- Info Percobaan -->
+                        <div v-if="quiz.my_attempt" class="d-flex align-center mt-3 text-body-2">
+                            <v-icon size="18" color="orange" class="mr-2">mdi-counter</v-icon>
+                            <span>
+                                Percobaan ke-<strong>{{ quiz.attempts_count || 1 }}</strong>
+                                <span v-if="quiz.max_attempts !== null"> dari {{ quiz.max_attempts }}</span>
+                                <span v-else> (Tidak Terbatas)</span>
+                            </span>
+                        </div>
                     </v-card-text>
 
                     <v-divider></v-divider>
@@ -75,7 +85,8 @@
                                 @click="startQuiz(quiz)"
                                 :loading="startingQuizId === quiz.id"
                             >
-                                {{ quiz.status === 'in_progress' ? 'Lanjutkan Ujian' : 'Mulai Ujian' }}
+                                <v-icon start>{{ quiz.status === 'in_progress' ? 'mdi-play-circle' : (quiz.my_attempt ? 'mdi-refresh' : 'mdi-play') }}</v-icon>
+                                {{ quiz.status === 'in_progress' ? 'Lanjutkan Ujian' : (quiz.my_attempt ? 'Kerjakan Ulang' : 'Mulai Ujian') }}
                             </v-btn>
                         </template>
                         <template v-else-if="quiz.status === 'upcoming'">

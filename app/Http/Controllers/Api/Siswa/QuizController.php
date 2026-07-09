@@ -32,12 +32,28 @@ class QuizController extends Controller
             ->with(['classes', 'subject'])
             ->get()
             ->map(function($quiz) use ($student) {
+                // Ambil attempt yang sedang in_progress (jika ada)
                 $attempt = QuizAttempt::where('quiz_id', $quiz->id)
                     ->where('student_id', $student->id)
+                    ->where('status', 'in_progress')
                     ->first();
-                
-                $quiz->my_attempt = $attempt;
-                $quiz->status = $this->getQuizStatus($quiz, $attempt);
+
+                // Hitung total yang sudah completed
+                $completedCount = QuizAttempt::where('quiz_id', $quiz->id)
+                    ->where('student_id', $student->id)
+                    ->where('status', 'completed')
+                    ->count();
+
+                // Ambil attempt terakhir (in_progress atau completed terakhir) untuk my_attempt
+                $lastAttempt = $attempt ?? QuizAttempt::where('quiz_id', $quiz->id)
+                    ->where('student_id', $student->id)
+                    ->where('status', 'completed')
+                    ->latest()
+                    ->first();
+
+                $quiz->my_attempt     = $lastAttempt;
+                $quiz->attempts_count = $completedCount + ($attempt ? 1 : 0);
+                $quiz->status         = $this->getQuizStatus($quiz, $attempt);
                 return $quiz;
             });
 
@@ -50,23 +66,43 @@ class QuizController extends Controller
     private function getQuizStatus($quiz, $attempt)
     {
         $now = Carbon::now();
-        
-        if ($attempt && $attempt->status === 'completed') {
-            return 'finished';
-        }
-        
+        $studentId = auth()->id();
+
+        // Jika sedang in_progress, kembalikan langsung
         if ($attempt && $attempt->status === 'in_progress') {
             return 'in_progress';
         }
-        
+
+        // Hitung berapa kali sudah selesai
+        $completedCount = QuizAttempt::where('quiz_id', $quiz->id)
+            ->where('student_id', $studentId)
+            ->where('status', 'completed')
+            ->count();
+
+        if ($completedCount > 0) {
+            // Cek apakah masih bisa mengerjakan ulang
+            $canRetry = false;
+            if ($quiz->max_attempts === null) {
+                // Unlimited
+                $canRetry = true;
+            } elseif ($completedCount < $quiz->max_attempts) {
+                $canRetry = true;
+            }
+
+            if (!$canRetry) {
+                return 'finished';
+            }
+            // Masih bisa retake, jatuh ke cek waktu di bawah
+        }
+
         if ($now->between($quiz->start_time, $quiz->end_time)) {
             return 'available';
         }
-        
+
         if ($now->lt($quiz->start_time)) {
             return 'upcoming';
         }
-        
+
         return 'expired';
     }
 
@@ -82,46 +118,46 @@ class QuizController extends Controller
             ], 403);
         }
 
-        $existingAttempt = QuizAttempt::where('quiz_id', $quiz->id)
+        // Cek apakah ada attempt yang sedang berlangsung
+        $inProgressAttempt = QuizAttempt::where('quiz_id', $quiz->id)
             ->where('student_id', $studentId)
+            ->where('status', 'in_progress')
             ->first();
 
-        if ($existingAttempt && $existingAttempt->status === 'completed') {
-            // Check max attempts
-            if ($quiz->max_attempts !== null) {
-                $completedCount = QuizAttempt::where('quiz_id', $quiz->id)
-                    ->where('student_id', $studentId)
-                    ->where('status', 'completed')
-                    ->count();
-                
-                if ($completedCount >= $quiz->max_attempts) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Anda sudah mencapai batas maksimal pengerjaan (' . $quiz->max_attempts . ' kali)'
-                    ], 403);
-                }
-            }
-        }
-
-        if ($existingAttempt && $existingAttempt->status === 'in_progress') {
+        if ($inProgressAttempt) {
             return response()->json([
                 'success' => true,
-                'data' => $existingAttempt
+                'data' => $inProgressAttempt
             ]);
         }
 
+        // Hitung attempt yang sudah completed
+        $completedCount = QuizAttempt::where('quiz_id', $quiz->id)
+            ->where('student_id', $studentId)
+            ->where('status', 'completed')
+            ->count();
+
+        // Cek batas maksimal (null = unlimited)
+        if ($quiz->max_attempts !== null && $completedCount >= $quiz->max_attempts) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda sudah mencapai batas maksimal pengerjaan (' . $quiz->max_attempts . ' kali)'
+            ], 403);
+        }
+
+        // Buat attempt baru
         $attempt = QuizAttempt::create([
-            'quiz_id' => $quiz->id,
-            'student_id' => $studentId,
-            'attempt_number' => ($existingAttempt ? $existingAttempt->attempt_number + 1 : 1),
-            'started_at' => $now,
-            'status' => 'in_progress'
+            'quiz_id'        => $quiz->id,
+            'student_id'     => $studentId,
+            'attempt_number' => $completedCount + 1,
+            'started_at'     => $now,
+            'status'         => 'in_progress'
         ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Ujian dimulai',
-            'data' => $attempt
+            'data'    => $attempt
         ]);
     }
 
