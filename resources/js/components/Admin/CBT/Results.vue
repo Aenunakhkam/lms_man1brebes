@@ -259,6 +259,9 @@ const props = defineProps({
     }
 });
 
+const user = JSON.parse(localStorage.getItem('user') || '{}');
+const apiPrefix = (user.role === 'guru' || (user.role && user.role.name === 'guru')) ? 'api/guru' : 'api/admin';
+
 const emit = defineEmits(['update:modelValue', 'close']);
 
 const results = ref([]);
@@ -298,7 +301,7 @@ const fetchResults = async (silent = false) => {
         if (search.value) params.search = search.value;
         if (selectedClass.value) params.class_id = selectedClass.value;
 
-        const response = await axios.get(`api/admin/quizzes/${props.quiz.id}/results`, { params });
+        const response = await axios.get(`${apiPrefix}/quizzes/${props.quiz.id}/results`, { params });
         if (response.data.success) {
             results.value = response.data.data.results;
             totalQuestions.value = response.data.data.quiz.questions_count;
@@ -334,7 +337,7 @@ const stopPolling = () => {
 const viewHistory = async (item) => {
     loadingHistory.value = true;
     try {
-        const response = await axios.get(`api/admin/quizzes/attempts/${item.id}/history`);
+        const response = await axios.get(`${apiPrefix}/quizzes/attempts/${item.id}/history`);
         if (response.data.success) {
             historyData.value = response.data.data;
             historyDialog.value = true;
@@ -362,7 +365,7 @@ const exportData = async (type) => {
         if (search.value) params.append('search', search.value);
         if (selectedClass.value) params.append('class_id', selectedClass.value);
 
-        const url = `api/admin/quizzes/${props.quiz.id}/export/${type}?${params.toString()}`;
+        const url = `${apiPrefix}/quizzes/${props.quiz.id}/export/${type}?${params.toString()}`;
         
         // Trigger download
         const response = await axios({
@@ -426,7 +429,7 @@ const confirmDelete = async (item) => {
 
     if (result.isConfirmed) {
         try {
-            const response = await axios.delete(`api/admin/quizzes/attempts/${item.id}`);
+            const response = await axios.delete(`${apiPrefix}/quizzes/attempts/${item.id}`);
             if (response.data.success) {
                 Swal.fire({
                     title: 'Terhapus!',
@@ -468,8 +471,8 @@ const toggleBlock = async (item) => {
     if (result.isConfirmed) {
         try {
             const url = isBlocking 
-                ? `api/admin/quizzes/attempts/${item.id}/block`
-                : `api/admin/quizzes/attempts/${item.id}/unblock`;
+                ? `${apiPrefix}/quizzes/attempts/${item.id}/block`
+                : `${apiPrefix}/quizzes/attempts/${item.id}/unblock`;
             
             const response = await axios.post(url);
             if (response.data.success) {

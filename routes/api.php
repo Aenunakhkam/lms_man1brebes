@@ -143,6 +143,13 @@ Route::middleware(['auth:sanctum', 'maintenance'])->group(function () {
         Route::post('quizzes/{quiz}/questions', [QuizController::class, 'storeQuestion']);
         Route::put('quizzes/{quiz}/questions/{question}', [QuizController::class, 'updateQuestion']);
         Route::delete('quizzes/{quiz}/questions/{question}', [QuizController::class, 'destroyQuestion']);
+        Route::get('quizzes/{quiz}/results', [QuizController::class, 'getResults']);
+        Route::get('quizzes/{quiz}/export/pdf', [QuizController::class, 'exportPdf']);
+        Route::get('quizzes/{quiz}/export/excel', [QuizController::class, 'exportExcel']);
+        Route::delete('quizzes/attempts/{attempt}', [QuizController::class, 'deleteAttempt']);
+        Route::post('quizzes/attempts/{attempt}/block', [QuizController::class, 'blockAttempt']);
+        Route::post('quizzes/attempts/{attempt}/unblock', [QuizController::class, 'unblockAttempt']);
+        Route::get('quizzes/attempts/{attempt}/history', [QuizController::class, 'getAttemptHistory']);
     });
 
     // Siswa routes
