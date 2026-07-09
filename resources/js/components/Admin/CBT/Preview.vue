@@ -251,9 +251,9 @@ const currentQuestion = computed(() => {
 const availableOptions = computed(() => {
     if (!currentQuestion.value) return [];
     const opts = ['a', 'b'];
-    if (currentQuestion.value.option_c) opts.push('c');
-    if (currentQuestion.value.option_d) opts.push('d');
-    if (currentQuestion.value.option_e) opts.push('e');
+    if (currentQuestion.value.option_c !== null && currentQuestion.value.option_c !== undefined && currentQuestion.value.option_c !== '') opts.push('c');
+    if (currentQuestion.value.option_d !== null && currentQuestion.value.option_d !== undefined && currentQuestion.value.option_d !== '') opts.push('d');
+    if (currentQuestion.value.option_e !== null && currentQuestion.value.option_e !== undefined && currentQuestion.value.option_e !== '') opts.push('e');
     return opts;
 });
 

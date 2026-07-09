@@ -469,9 +469,10 @@ const saveQuestion = async () => {
     formData.append('question_text', quill ? quill.root.innerHTML : questionForm.value.question_text);
     formData.append('option_a', questionForm.value.option_a);
     formData.append('option_b', questionForm.value.option_b);
-    formData.append('option_c', jumlahOpsi.value >= 3 ? (questionForm.value.option_c || '') : '');
-    formData.append('option_d', jumlahOpsi.value >= 4 ? (questionForm.value.option_d || '') : '');
-    formData.append('option_e', jumlahOpsi.value >= 5 ? (questionForm.value.option_e || '') : '');
+    // Kirim string kosong jika opsi tidak dipakai — backend akan konversi ke null
+    if (jumlahOpsi.value >= 3) formData.append('option_c', questionForm.value.option_c || '');
+    if (jumlahOpsi.value >= 4) formData.append('option_d', questionForm.value.option_d || '');
+    if (jumlahOpsi.value >= 5) formData.append('option_e', questionForm.value.option_e || '');
     formData.append('correct_answer', questionForm.value.correct_answer);
     formData.append('points', questionForm.value.points);
     formData.append('type', questionForm.value.type);

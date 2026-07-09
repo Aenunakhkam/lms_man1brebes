@@ -103,7 +103,7 @@
                                     <div 
                                         v-for="opt in ['a', 'b', 'c', 'd', 'e']" 
                                         :key="opt"
-                                        v-show="currentQuestion['option_' + opt]"
+                                        v-show="currentQuestion['option_' + opt] !== null && currentQuestion['option_' + opt] !== undefined && currentQuestion['option_' + opt] !== ''"
                                         class="option-item d-flex align-center mb-4 cursor-pointer"
                                         @click="selectOption(opt)"
                                     >

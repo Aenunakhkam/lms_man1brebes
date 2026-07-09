@@ -172,6 +172,11 @@ class QuizController extends Controller
             $validated['type'] = 'multiple_choice';
         }
 
+        // Konversi string kosong ke null agar tidak tampil sebagai opsi kosong di siswa
+        $validated['option_c'] = !empty($validated['option_c']) ? $validated['option_c'] : null;
+        $validated['option_d'] = !empty($validated['option_d']) ? $validated['option_d'] : null;
+        $validated['option_e'] = !empty($validated['option_e']) ? $validated['option_e'] : null;
+
         $question = $quiz->questions()->create($validated);
 
         return response()->json([
@@ -204,6 +209,11 @@ class QuizController extends Controller
             $path = $request->file('question_image')->store('questions', 'public');
             $validated['question_image'] = $path;
         }
+
+        // Konversi string kosong ke null agar tidak tampil sebagai opsi kosong di siswa
+        $validated['option_c'] = !empty($validated['option_c']) ? $validated['option_c'] : null;
+        $validated['option_d'] = !empty($validated['option_d']) ? $validated['option_d'] : null;
+        $validated['option_e'] = !empty($validated['option_e']) ? $validated['option_e'] : null;
 
         $question->update($validated);
 
