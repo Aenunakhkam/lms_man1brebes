@@ -60,6 +60,10 @@
                 <template v-slot:item.index="{ index }">
                     {{ index + 1 }}
                 </template>
+                <template v-slot:item.password_raw="{ item }">
+                    <code class="px-2 py-1 rounded bg-yellow-lighten-4 text-orange-darken-4 font-weight-bold" v-if="item.password_raw">{{ item.password_raw }}</code>
+                    <span class="text-grey italic text-caption" v-else>(tidak tersimpan)</span>
+                </template>
                 <template v-slot:item.role="{ item }">
                     <v-chip
                         :color="getRoleColor(item.role?.name)"
@@ -242,6 +246,7 @@ const dynamicHeaders = computed(() => {
         { title: 'No.', key: 'index', sortable: false, width: '50px' },
         { title: 'Nama', align: 'start', key: 'name' },
         { title: 'Email', key: 'email' },
+        { title: 'Password', key: 'password_raw', sortable: false },
     ];
 
     if (roleFilter.value === 'siswa') {
