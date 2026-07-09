@@ -1,7 +1,7 @@
 <template>
     <v-app :theme="theme.global.name.value" class="anbk-bg">
         <!-- ANBK Style Header -->
-        <v-app-bar elevation="0" color="#2c6fb7" height="100" class="px-0 relative overflow-visible">
+        <v-app-bar elevation="0" color="#2c6fb7" height="100" class="px-0 overflow-visible" style="z-index: 2500 !important;">
             <v-container fluid class="pa-0 fill-height d-flex align-center">
                 <!-- Logo & App Name -->
                 <div class="d-flex align-center ml-4 ml-md-10">
