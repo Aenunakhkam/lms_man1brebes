@@ -48,7 +48,9 @@ class UserController extends Controller
             'is_active' => 'boolean'
         ]);
 
+        $plainPassword = $validated['password'];
         $validated['password'] = Hash::make($validated['password']);
+        $validated['password_raw'] = $plainPassword;
         
         $user = User::create($validated);
         $user->load('role');
@@ -89,7 +91,9 @@ class UserController extends Controller
         $validated = $request->validate($rules);
 
         if ($request->filled('password')) {
+            $plainPassword = $validated['password'];
             $validated['password'] = Hash::make($validated['password']);
+            $validated['password_raw'] = $plainPassword;
         } else {
             unset($validated['password']);
         }
@@ -123,8 +127,10 @@ class UserController extends Controller
 
     public function resetPassword(User $user)
     {
+        $defaultPassword = 'password123';
         $user->update([
-            'password' => Hash::make('password123')
+            'password'     => Hash::make($defaultPassword),
+            'password_raw' => $defaultPassword,
         ]);
 
         return response()->json([

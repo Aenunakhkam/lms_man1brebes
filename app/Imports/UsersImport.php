@@ -26,14 +26,16 @@ class UsersImport implements ToModel, WithHeadingRow
             return null;
         }
 
+        $defaultPassword = !empty($row['password']) ? $row['password'] : 'password123';
         $userData = [
-            'name'      => $row['nama'],
-            'email'     => $row['email'],
-            'role_id'   => $this->roleId,
-            'address'   => $row['alamat'] ?? null,
-            'phone'     => $row['telepon'] ?? null,
-            'password'  => Hash::make('password123'),
-            'is_active' => true,
+            'name'         => $row['nama'],
+            'email'        => $row['email'],
+            'role_id'      => $this->roleId,
+            'address'      => $row['alamat'] ?? null,
+            'phone'        => $row['telepon'] ?? null,
+            'password'     => Hash::make($defaultPassword),
+            'password_raw' => $defaultPassword,
+            'is_active'    => true,
         ];
 
         if ($this->roleName === 'siswa') $userData['nis'] = $row['nis'] ?? null;
